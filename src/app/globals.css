@@ -26,7 +26,16 @@ html {
   scroll-behavior: smooth;
 }
 
+@layer base {
+  /* Let grid and flex children shrink instead of pushing the page wider than the screen. */
+  * {
+    min-width: 0;
+  }
+}
+
 body {
   background: #f7f8fd;
   color: #171a2e;
+  overflow-x: clip;
+  overflow-wrap: break-word;
 }

@@ -34,7 +34,7 @@ export default async function CheckoutPage({ searchParams }: { searchParams: Sea
 
       <h1 className="mt-6 font-display text-3xl font-semibold tracking-tight text-brand-950">Checkout</h1>
 
-      <div className="mt-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-xl shadow-slate-900/5">
+      <div className="mt-6 rounded-3xl border border-slate-200 bg-white p-4 shadow-xl shadow-slate-900/5 sm:p-6">
         <dl className="divide-y divide-slate-100 text-sm">
           <div className="flex justify-between gap-6 py-3">
             <dt className="text-slate-500">Course</dt>
