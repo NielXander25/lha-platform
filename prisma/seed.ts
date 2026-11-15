@@ -1,200 +1,159 @@
+// Sample data so the site has something to show. All prices, tutors and
+// locations below are placeholders: replace them with the real ones.
 import { PrismaClient } from "@prisma/client";
-import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
 
-const PASSWORD = "Passw0rd!"; // every seeded account uses this — change after first login
+const courses = [
+  {
+    slug: "primary-maths-english",
+    title: "Primary Maths & English",
+    category: "Foundations",
+    level: "Primary",
+    summary: "Build strong numeracy and literacy foundations for Primary 1–6.",
+    description:
+      "One-on-one or small-group lessons covering number work, reading comprehension, phonics, spelling and composition. Lessons follow the national curriculum and move at your child's pace.",
+    price: 25000,
+    sessionsPerWeek: 2,
+    sessionLengthMins: 60,
+  },
+  {
+    slug: "common-entrance-prep",
+    title: "Common Entrance Preparation",
+    category: "Exam Prep",
+    level: "Primary",
+    summary: "Focused preparation for secondary school entrance examinations.",
+    description:
+      "Timed practice papers, quantitative and verbal reasoning drills, and targeted revision in Mathematics and English so pupils walk into the exam confident.",
+    price: 35000,
+    sessionsPerWeek: 3,
+    sessionLengthMins: 60,
+  },
+  {
+    slug: "jss-mathematics",
+    title: "Junior Secondary Mathematics",
+    category: "Mathematics",
+    level: "Junior Secondary",
+    summary: "Close gaps and get ahead in JSS 1–3 Mathematics.",
+    description:
+      "Algebra, geometry, statistics and problem solving, taught step by step with plenty of worked examples and weekly progress checks.",
+    price: 30000,
+    sessionsPerWeek: 2,
+    sessionLengthMins: 60,
+  },
+  {
+    slug: "jss-basic-science",
+    title: "Basic Science & Technology",
+    category: "Sciences",
+    level: "Junior Secondary",
+    summary: "Hands-on understanding of Basic Science and Basic Technology.",
+    description:
+      "Concept-first lessons with simple experiments and real-life examples that make science stick, aligned with the JSS curriculum.",
+    price: 28000,
+    sessionsPerWeek: 2,
+    sessionLengthMins: 60,
+  },
+  {
+    slug: "sss-mathematics",
+    title: "Senior Secondary Mathematics",
+    category: "Mathematics",
+    level: "Senior Secondary",
+    summary: "Master SSS Mathematics and Further Mathematics topics.",
+    description:
+      "Covers the full SSS syllabus including calculus, trigonometry, vectors and statistics, with exam-style questions in every session.",
+    price: 40000,
+    sessionsPerWeek: 2,
+    sessionLengthMins: 90,
+  },
+  {
+    slug: "sss-physics-chemistry",
+    title: "Physics & Chemistry",
+    category: "Sciences",
+    level: "Senior Secondary",
+    summary: "Make sense of the hardest science subjects in senior school.",
+    description:
+      "Clear explanations of core principles, calculation practice and past-question walkthroughs for both Physics and Chemistry.",
+    price: 45000,
+    sessionsPerWeek: 2,
+    sessionLengthMins: 90,
+  },
+  {
+    slug: "waec-neco-prep",
+    title: "WAEC / NECO Intensive",
+    category: "Exam Prep",
+    level: "Senior Secondary",
+    summary: "An intensive revision programme for final school examinations.",
+    description:
+      "Subject-by-subject revision, past papers under timed conditions and marking-scheme coaching across your chosen subjects.",
+    price: 50000,
+    sessionsPerWeek: 3,
+    sessionLengthMins: 90,
+  },
+  {
+    slug: "jamb-utme-prep",
+    title: "JAMB UTME Preparation",
+    category: "Exam Prep",
+    level: "Senior Secondary",
+    summary: "Score high on UTME with CBT practice and targeted coaching.",
+    description:
+      "Computer-based test practice, Use of English, and your three chosen subjects, with mock exams and score tracking.",
+    price: 45000,
+    sessionsPerWeek: 3,
+    sessionLengthMins: 90,
+  },
+  {
+    slug: "french-beginners",
+    title: "French for Beginners",
+    category: "Languages",
+    level: "All levels",
+    summary: "Speak, read and write everyday French.",
+    description:
+      "Conversational lessons focused on speaking confidence, grammar essentials and vocabulary for school and travel.",
+    price: 30000,
+    sessionsPerWeek: 2,
+    sessionLengthMins: 60,
+  },
+  {
+    slug: "coding-for-teens",
+    title: "Coding for Teens",
+    category: "Technology",
+    level: "Junior & Senior Secondary",
+    summary: "Learn to build websites and games with real code.",
+    description:
+      "Project-based lessons in HTML, CSS, JavaScript and Python. Students finish with a portfolio of things they've built themselves.",
+    price: 40000,
+    sessionsPerWeek: 2,
+    sessionLengthMins: 90,
+  },
+];
+
+const tutors = [
+  { name: "Adaeze Okafor", email: "adaeze.okafor@example.com", phone: "+234 800 000 0001", subjects: "Mathematics, Further Mathematics", bio: "Mathematics graduate with 6 years of secondary-school tutoring." },
+  { name: "Kwame Mensah", email: "kwame.mensah@example.com", phone: "+234 800 000 0002", subjects: "Physics, Chemistry", bio: "Engineer who loves making science practical." },
+  { name: "Fatima Bello", email: "fatima.bello@example.com", phone: "+234 800 000 0003", subjects: "English, Literature, Primary", bio: "Primary and junior-secondary literacy specialist." },
+  { name: "Chinedu Eze", email: "chinedu.eze@example.com", phone: "+234 800 000 0004", subjects: "Computer Science, Mathematics", bio: "Software developer teaching coding to teenagers." },
+  { name: "Amina Diallo", email: "amina.diallo@example.com", phone: "+234 800 000 0005", subjects: "French, English", bio: "Bilingual teacher with DELF examiner experience." },
+];
+
+const locations = [
+  { name: "Online (Live video)", city: "Anywhere", isOnline: true },
+  { name: "Lekki Learning Centre", city: "Lagos", address: "12 Admiralty Way, Lekki Phase 1" },
+  { name: "Ikeja Learning Centre", city: "Lagos", address: "5 Allen Avenue, Ikeja" },
+  { name: "Wuse Learning Centre", city: "Abuja", address: "Plot 20, Wuse Zone 4" },
+  { name: "Home tutoring – Port Harcourt", city: "Port Harcourt", address: "Tutor visits the student's home" },
+];
 
 async function main() {
-  const passwordHash = await bcrypt.hash(PASSWORD, 10);
-
-  // --- Pods ---
-  const podNames = [
-    "Pod 1 — Baobab", "Pod 2 — Acacia", "Pod 3 — Iroko", "Pod 4 — Palm",
-    "Pod 5 — Mahogany", "Pod 6 — Ebony", "Pod 7 — Kola", "Pod 8 — Shea", "Pod 9 — Tamarind",
-  ];
-  const pods = [];
-  for (const name of podNames) {
-    pods.push(await prisma.pod.upsert({ where: { name }, update: {}, create: { name } }));
+  for (const c of courses) {
+    await prisma.course.upsert({ where: { slug: c.slug }, update: c, create: c });
   }
-
-  // --- Super Admin ---
-  await prisma.user.upsert({
-    where: { email: "admin@foundersxlha.org" },
-    update: {},
-    create: {
-      email: "admin@foundersxlha.org",
-      passwordHash,
-      fullName: "Programme Admin",
-      role: "SUPER_ADMIN",
-    },
-  });
-
-  // --- Facilitators ---
-  const moduleTitles = [
-    "Foundations of Leadership",
-    "Self-Awareness & Emotional Intelligence",
-    "Communication & Influence",
-    "Systems Thinking & Problem Solving",
-    "Building & Leading Teams",
-    "Leading Change in African Contexts",
-  ];
-  const facilitators = [];
-  for (let i = 0; i < moduleTitles.length; i++) {
-    facilitators.push(
-      await prisma.user.upsert({
-        where: { email: `facilitator${i + 1}@foundersxlha.org` },
-        update: {},
-        create: {
-          email: `facilitator${i + 1}@foundersxlha.org`,
-          passwordHash,
-          fullName: `Facilitator ${i + 1}`,
-          role: "FACILITATOR",
-        },
-      })
-    );
+  for (const t of tutors) {
+    await prisma.tutor.upsert({ where: { email: t.email }, update: t, create: t });
   }
-
-  // --- Modules + one sample assessment ---
-  for (let i = 0; i < moduleTitles.length; i++) {
-    const mod = await prisma.module.upsert({
-      where: { number: i + 1 },
-      update: {},
-      create: {
-        number: i + 1,
-        title: moduleTitles[i],
-        description: `Core module ${i + 1} of the Leadership Development Programme.`,
-        facilitatorId: facilitators[i].id,
-        availability: "AUTOMATED",
-        availableFrom: new Date(Date.now() + i * 7 * 24 * 60 * 60 * 1000),
-      },
-    });
-
-    await prisma.calendarEvent.upsert({
-      where: { moduleId: mod.id },
-      update: {},
-      create: {
-        moduleId: mod.id,
-        title: `${moduleTitles[i]} — Live Session`,
-        date: new Date(Date.now() + i * 7 * 24 * 60 * 60 * 1000),
-        time: "10:00 AM WAT",
-        facilitator: facilitators[i].fullName,
-        meetingLink: "https://teams.microsoft.com/l/meetup-join/sample",
-      },
-    });
-
-    if (i === 0) {
-      const existing = await prisma.assessment.findUnique({ where: { moduleId: mod.id } });
-      if (!existing) {
-        await prisma.assessment.create({
-          data: {
-            moduleId: mod.id,
-            title: "Module 1 Assessment",
-            questions: {
-              create: [
-                {
-                  type: "MULTIPLE_CHOICE",
-                  prompt: "Which of these best describes servant leadership?",
-                  options: [
-                    { id: "opt1", text: "Leading by prioritising the team's growth and needs" },
-                    { id: "opt2", text: "Leading by strict top-down control" },
-                    { id: "opt3", text: "Avoiding decisions to keep everyone happy" },
-                  ],
-                  correctAnswer: "opt1",
-                  order: 0,
-                },
-                {
-                  type: "LONG_ANSWER",
-                  prompt: "Describe a time you had to lead without formal authority. What worked?",
-                  order: 1,
-                },
-              ],
-            },
-          },
-        });
-      }
-    }
+  if ((await prisma.location.count()) === 0) {
+    await prisma.location.createMany({ data: locations });
   }
-
-  // --- Mentors ---
-  const mentors = [];
-  for (let i = 0; i < 6; i++) {
-    mentors.push(
-      await prisma.user.upsert({
-        where: { email: `mentor${i + 1}@foundersxlha.org` },
-        update: {},
-        create: {
-          email: `mentor${i + 1}@foundersxlha.org`,
-          passwordHash,
-          fullName: `Mentor ${i + 1}`,
-          role: "MENTOR",
-        },
-      })
-    );
-  }
-
-  // --- Participants (sample of ~18, 2 per pod, first one as rep) ---
-  for (let p = 0; p < pods.length; p++) {
-    for (let m = 0; m < 2; m++) {
-      const idx = p * 2 + m;
-      const email = `participant${idx + 1}@foundersxlha.org`;
-      await prisma.user.upsert({
-        where: { email },
-        update: {},
-        create: {
-          email,
-          passwordHash,
-          fullName: `Participant ${idx + 1}`,
-          role: "PARTICIPANT",
-          podId: pods[p].id,
-          isPodRepresentative: m === 0,
-        },
-      });
-    }
-  }
-
-  // --- Milestones (capstone weeks 7-12) ---
-  const milestoneTitles = [
-    "Problem identification",
-    "Research & stakeholder mapping",
-    "Proposed solution draft",
-    "Feedback & iteration",
-    "Implementation / pilot",
-    "Final submission & presentation",
-  ];
-  for (let i = 0; i < milestoneTitles.length; i++) {
-    await prisma.milestone.upsert({
-      where: { week: i + 7 },
-      update: {},
-      create: { week: i + 7, title: milestoneTitles[i] },
-    });
-  }
-
-  // --- Policies ---
-  const policies = [
-    { slug: "code-of-conduct", title: "Code of Conduct", content: "Participants are expected to engage respectfully with facilitators, mentors, and fellow participants at all times." },
-    { slug: "assessment-policy", title: "Assessment Policy", content: "Each module assessment must be completed within one week of the live session. Late submissions may affect certification eligibility." },
-    { slug: "certification-policy", title: "Certification Policy", content: "A free Certificate of Completion is issued to participants who complete all modules and the capstone project. A paid Certified Leadership Development Certificate is available on request." },
-  ];
-  for (const pol of policies) {
-    await prisma.policy.upsert({ where: { slug: pol.slug }, update: {}, create: pol });
-  }
-
-  // --- Sample announcement ---
-  await prisma.announcement.upsert({
-    where: { id: "seed-announcement-1" },
-    update: {},
-    create: {
-      id: "seed-announcement-1",
-      title: "Welcome to Cohort One",
-      body: "We're excited to have you. Your first live session is Module 1 — check your dashboard for the date and Teams link.",
-      pinned: true,
-    },
-  });
-
-  console.log("Seed complete.");
-  console.log(`All seeded accounts use the password: ${PASSWORD}`);
-  console.log("Admin login: admin@foundersxlha.org");
+  console.log(`Seeded ${courses.length} courses, ${tutors.length} tutors, ${locations.length} locations.`);
 }
 
 main()
@@ -202,6 +161,4 @@ main()
     console.error(e);
     process.exit(1);
   })
-  .finally(async () => {
-    await prisma.$disconnect();
-  });
+  .finally(() => prisma.$disconnect());

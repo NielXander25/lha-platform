@@ -1,402 +1,84 @@
+// Learning Hub Africa data model.
+// SQLite for local development; switch `provider` to "postgresql" for production.
+
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
-// ---------- Enums ----------
-
-enum Role {
-  PARTICIPANT
-  POD_REPRESENTATIVE
-  FACILITATOR
-  MENTOR
-  ADMIN
-  SUPER_ADMIN
-}
-
-enum ProgrammeStatus {
-  ACTIVE
-  INACTIVE
-  COMPLETED
-  WITHDRAWN
-}
-
-enum ModuleAvailability {
-  AUTOMATED
-  MANUAL
-}
-
-enum QuestionType {
-  MULTIPLE_CHOICE
-  MULTIPLE_ANSWER
-  SHORT_ANSWER
-  LONG_ANSWER
-  SCENARIO
-}
-
-enum SubmissionStatus {
-  NOT_STARTED
-  IN_PROGRESS
-  SUBMITTED
-  GRADED
-}
-
-enum EngagementLevel {
-  LOW
-  MODERATE
-  HIGH
-  VERY_HIGH
-}
-
-enum CompletionCertStatus {
-  NOT_ELIGIBLE
-  ELIGIBLE
-  ISSUED
-}
-
-enum PaidCertStatus {
-  NOT_REQUESTED
-  REQUESTED
-  PAID
-  PROCESSING
-  ISSUED
-}
-
-enum AttendanceStatus {
-  PRESENT
-  ABSENT
-  EXCUSED
-}
-
-// ---------- Core identity ----------
-
-model User {
-  id                String          @id @default(cuid())
-  email             String          @unique
-  passwordHash      String?
-  fullName          String
-  preferredName      String?
-  phone             String?
-  photoUrl          String?
-  participantCode   String?         @unique
-  role              Role            @default(PARTICIPANT)
-  programmeStatus   ProgrammeStatus @default(ACTIVE)
-  isPodRepresentative Boolean       @default(false)
-  active            Boolean         @default(true)
-
-  podId             String?
-  pod               Pod?            @relation("PodMembers", fields: [podId], references: [id])
-
-  createdAt         DateTime        @default(now())
-  updatedAt         DateTime        @updatedAt
-
-  facilitatedModules   Module[]            @relation("ModuleFacilitator")
-  submissions          AssessmentSubmission[]
-  feedbackEntries      SessionFeedback[]
-  podFeedbackEntries   PodFeedback[]
-  sessionNuggets       SessionNugget[]
-  announcementsAuthored Announcement[]
-  policyAcks           PolicyAcknowledgement[]
-  attendance           Attendance[]
-  ownedProject         Project?            @relation("ProjectOwner")
-  mentorships          MentorAssignment[]  @relation("MentorUser")
-  menteeOf             MentorAssignment[]  @relation("MenteeUser")
-  certificate          Certificate?        @relation("CompletionCert")
-  auditLogs            AuditLog[]
-}
-
-model Pod {
-  id             String   @id @default(cuid())
-  name           String   @unique
-  representativeId String?
-  createdAt      DateTime @default(now())
-
-  members        User[]   @relation("PodMembers")
-  sessions       PodSession[]
-  nuggets        SessionNugget[]
-  podFeedback    PodFeedback[]
-}
-
-// ---------- Programme content ----------
-
-model Module {
-  id             String   @id @default(cuid())
-  number         Int      @unique
-  title          String
-  description    String?
-  facilitatorId  String?
-  facilitator    User?    @relation("ModuleFacilitator", fields: [facilitatorId], references: [id])
-  learningObjectives String?
-  sessionDate    DateTime?
-  availability   ModuleAvailability @default(AUTOMATED)
-  availableFrom  DateTime?
-  manuallyUnlocked Boolean  @default(false)
-  recordingUrl   String?
-  reflectionPrompt String?
-  meetingLink    String?
-
-  resources      Resource[]
-  assessment     Assessment?
-  calendarEvent  CalendarEvent?
-
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-}
-
-model Resource {
-  id        String   @id @default(cuid())
-  moduleId  String?
-  module    Module?  @relation(fields: [moduleId], references: [id])
-  title     String
-  type      String   // slides | pdf | reading | video | link
-  url       String
-  week      Int?
-  createdAt DateTime @default(now())
-}
-
-model CalendarEvent {
-  id          String   @id @default(cuid())
-  moduleId    String?  @unique
-  module      Module?  @relation(fields: [moduleId], references: [id])
+// A tutorial offering students can pay for, e.g. "SSS Mathematics".
+model Course {
+  id          String       @id @default(cuid())
+  slug        String       @unique
   title       String
-  date        DateTime
-  time        String?
-  description String?
-  facilitator String?
-  meetingLink String?
-  preparation String?
-  createdAt   DateTime @default(now())
+  category    String       // e.g. Mathematics, Sciences, Languages, Exam Prep
+  level       String       // e.g. Primary, Junior Secondary, Senior Secondary, University
+  summary     String
+  description String
+  price       Int          // whole currency units (NGN)
+  billingUnit String       @default("month") // price is charged per this unit
+  sessionsPerWeek Int      @default(2)
+  sessionLengthMins Int    @default(60)
+  active      Boolean      @default(true)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  enrollments Enrollment[]
 }
 
-// ---------- Assessments ----------
-
-model Assessment {
-  id          String   @id @default(cuid())
-  moduleId    String   @unique
-  module      Module   @relation(fields: [moduleId], references: [id])
-  title       String
-  questions   Question[]
-  createdAt   DateTime @default(now())
-
-  submissions AssessmentSubmission[]
+model Tutor {
+  id          String       @id @default(cuid())
+  name        String
+  email       String       @unique
+  phone       String?
+  subjects    String       // comma-separated list of subjects
+  bio         String?
+  active      Boolean      @default(true)
+  createdAt   DateTime     @default(now())
+  enrollments Enrollment[]
 }
 
-model Question {
-  id           String       @id @default(cuid())
-  assessmentId String
-  assessment   Assessment   @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
-  type         QuestionType
-  prompt       String
-  options      Json?        // for MC / multi-answer: [{id,text}]
-  correctAnswer Json?       // objective questions only
-  order        Int          @default(0)
+// Where a tutorial takes place: a learning centre, a home-tutoring area, or online.
+model Location {
+  id          String       @id @default(cuid())
+  name        String
+  city        String
+  address     String?
+  isOnline    Boolean      @default(false)
+  active      Boolean      @default(true)
+  createdAt   DateTime     @default(now())
+  enrollments Enrollment[]
 }
 
-model AssessmentSubmission {
-  id            String            @id @default(cuid())
-  assessmentId  String
-  assessment    Assessment        @relation(fields: [assessmentId], references: [id])
-  userId        String
-  user          User              @relation(fields: [userId], references: [id])
-  answers       Json              // {questionId: answer}
-  score         Int?
-  maxScore      Int?
-  status        SubmissionStatus  @default(NOT_STARTED)
-  attemptNumber Int               @default(1)
-  submittedAt   DateTime?
-  gradedAt      DateTime?
-  createdAt     DateTime          @default(now())
-
-  @@unique([assessmentId, userId, attemptNumber])
+model Student {
+  id          String       @id @default(cuid())
+  name        String
+  email       String       @unique
+  phone       String
+  createdAt   DateTime     @default(now())
+  enrollments Enrollment[]
 }
 
-// ---------- Pod system ----------
+// A student's request for a course. Staff assign a tutor and a location to it.
+model Enrollment {
+  id                  String    @id @default(cuid())
+  studentId           String
+  courseId            String
+  tutorId             String?
+  locationId          String?
+  preferredLocationId String?   // what the student asked for when signing up
+  status              String    @default("PENDING") // PENDING | ASSIGNED | ACTIVE | COMPLETED | CANCELLED
+  notes               String?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
 
-model PodSession {
-  id         String   @id @default(cuid())
-  podId      String
-  pod        Pod      @relation(fields: [podId], references: [id])
-  week       Int
-  caseStudyUrl String?
-  discussionQuestions Json? // string[]
-  createdAt  DateTime @default(now())
+  student  Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  course   Course    @relation(fields: [courseId], references: [id], onDelete: Restrict)
+  tutor    Tutor?    @relation(fields: [tutorId], references: [id], onDelete: SetNull)
+  location Location? @relation(fields: [locationId], references: [id], onDelete: SetNull)
 
-  @@unique([podId, week])
-}
-
-model SessionNugget {
-  id          String   @id @default(cuid())
-  podId       String
-  pod         Pod      @relation(fields: [podId], references: [id])
-  week        Int
-  content     String
-  submittedById String
-  submittedBy User     @relation(fields: [submittedById], references: [id])
-  createdAt   DateTime @default(now())
-}
-
-model PodFeedback {
-  id              String          @id @default(cuid())
-  podId           String
-  pod             Pod             @relation(fields: [podId], references: [id])
-  week            Int
-  engagementLevel EngagementLevel
-  strongestPart   String?
-  standoutMoment  String?
-  strugglingNote  String?
-  otherNotes      String?
-  submittedById   String
-  submittedBy     User            @relation(fields: [submittedById], references: [id])
-  createdAt       DateTime        @default(now())
-}
-
-// ---------- Session feedback (Saturday sessions) ----------
-
-model SessionFeedback {
-  id            String   @id @default(cuid())
-  userId        String
-  user          User     @relation(fields: [userId], references: [id])
-  moduleId      String?
-  usefulnessScore Int?   // 1-5
-  clarityScore    Int?   // 1-5
-  mostValuable    String?
-  couldImprove    String?
-  otherNotes      String?
-  createdAt     DateTime @default(now())
-}
-
-// ---------- Announcements ----------
-
-model Announcement {
-  id         String   @id @default(cuid())
-  title      String
-  body       String
-  authorId   String?
-  author     User?    @relation(fields: [authorId], references: [id])
-  pinned     Boolean  @default(false)
-  createdAt  DateTime @default(now())
-}
-
-// ---------- Policies ----------
-
-model Policy {
-  id        String   @id @default(cuid())
-  slug      String   @unique
-  title     String
-  content   String
-  version   Int      @default(1)
-  updatedAt DateTime @updatedAt
-
-  acknowledgements PolicyAcknowledgement[]
-}
-
-model PolicyAcknowledgement {
-  id         String   @id @default(cuid())
-  userId     String
-  user       User     @relation(fields: [userId], references: [id])
-  policyId   String
-  policy     Policy   @relation(fields: [policyId], references: [id])
-  acceptedAt DateTime @default(now())
-
-  @@unique([userId, policyId])
-}
-
-// ---------- Project / Capstone ----------
-
-model Project {
-  id              String   @id @default(cuid())
-  ownerId         String   @unique
-  owner           User     @relation("ProjectOwner", fields: [ownerId], references: [id])
-  title           String?
-  problemStatement String?
-  teamMembers     String?
-  research        String?
-  proposedSolution String?
-  progressNotes   String?
-  evidenceUrl     String?
-  finalSubmissionUrl String?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  milestoneProgress ProjectMilestoneProgress[]
-  mentorAssignment  MentorAssignment?
-}
-
-model Milestone {
-  id          String   @id @default(cuid())
-  week        Int      @unique
-  title       String
-  description String?
-
-  progress ProjectMilestoneProgress[]
-}
-
-model ProjectMilestoneProgress {
-  id           String    @id @default(cuid())
-  projectId    String
-  project      Project   @relation(fields: [projectId], references: [id])
-  milestoneId  String
-  milestone    Milestone @relation(fields: [milestoneId], references: [id])
-  completed    Boolean   @default(false)
-  submissionUrl String?
-  completedAt  DateTime?
-
-  @@unique([projectId, milestoneId])
-}
-
-model MentorAssignment {
-  id        String   @id @default(cuid())
-  mentorId  String
-  mentor    User     @relation("MentorUser", fields: [mentorId], references: [id])
-  menteeId  String   @unique
-  mentee    User     @relation("MenteeUser", fields: [menteeId], references: [id])
-  projectId String?  @unique
-  project   Project? @relation(fields: [projectId], references: [id])
-  createdAt DateTime @default(now())
-}
-
-// ---------- Attendance ----------
-
-model Attendance {
-  id        String            @id @default(cuid())
-  userId    String
-  user      User              @relation(fields: [userId], references: [id])
-  eventLabel String           // e.g. "Saturday Week 3" or "Thursday Pod Week 3"
-  status    AttendanceStatus  @default(PRESENT)
-  recordedAt DateTime         @default(now())
-
-  @@unique([userId, eventLabel])
-}
-
-// ---------- Certification ----------
-
-model Certificate {
-  id                 String                @id @default(cuid())
-  userId             String                @unique
-  user               User                  @relation("CompletionCert", fields: [userId], references: [id])
-  completionStatus   CompletionCertStatus  @default(NOT_ELIGIBLE)
-  completionIssuedAt DateTime?
-
-  paidStatus         PaidCertStatus        @default(NOT_REQUESTED)
-  paidAmountKobo     Int?                  // 1500000 = ₦15,000
-  paymentReference   String?
-  wantsHardCopy      Boolean               @default(false)
-  deliveryAddress    String?
-  deliveryFeePaid    Boolean               @default(false)
-  paidIssuedAt       DateTime?
-}
-
-// ---------- Audit ----------
-
-model AuditLog {
-  id        String   @id @default(cuid())
-  userId    String?
-  user      User?    @relation(fields: [userId], references: [id])
-  action    String
-  metadata  Json?
-  createdAt DateTime @default(now())
+  @@index([status])
 }
