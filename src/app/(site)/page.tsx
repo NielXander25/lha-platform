@@ -60,8 +60,8 @@ const steps = [
   },
   {
     icon: CalendarCheck,
-    title: "Get in touch",
-    body: "Call, email or WhatsApp us and we'll help you get started.",
+    title: "Pick a class size and pay",
+    body: "Choose general class, two-to-one or one-on-one, then pay online for your course.",
   },
   {
     icon: BookOpen,
@@ -265,9 +265,10 @@ export default async function HomePage() {
             Three ways to learn. You choose.
           </h2>
           <p className="mb-10 mt-4 max-w-2xl text-stone-600">
-            The same prices apply to every course, {PRICE_UNIT}. Pick the class size that suits you.
+            The same prices apply to every course, {PRICE_UNIT}. Pick the class size that suits you,
+            choose your course and pay online.
           </p>
-          <PricingCards tiers={tiers} />
+          <PricingCards tiers={tiers} href={() => "/tutorials"} cta="Choose a course" />
         </section>
       )}
 

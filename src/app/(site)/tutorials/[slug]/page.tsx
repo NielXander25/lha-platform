@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { ArrowLeft, CalendarDays, Check, Clock, Mail, MapPin, MessageCircle, Phone } from "lucide-react";
-import { PricingList } from "@/components/pricing-tiers";
+import { PricingOptions } from "@/components/pricing-tiers";
 import { PRICE_UNIT, SITE, whatsappLink } from "@/lib/constants";
 import { prisma } from "@/lib/prisma";
 
@@ -136,17 +136,18 @@ export default async function CoursePage({ params }: { params: Params }) {
 
         <aside className="lg:sticky lg:top-24 lg:self-start">
           <div className="rounded-3xl border border-stone-200 bg-white p-6 shadow-xl shadow-stone-900/5">
-            <p className="text-sm font-medium text-stone-500">Price {PRICE_UNIT}</p>
-            <PricingList tiers={tiers} />
-            <hr className="mb-6 mt-2 border-stone-100" />
-            <h2 className="font-semibold text-stone-900">Interested in this tutorial?</h2>
+            <h2 className="font-semibold text-stone-900">Choose your class size</h2>
+            <p className="mb-4 mt-1 text-sm text-stone-500">Prices are {PRICE_UNIT}. Pick an option to pay.</p>
+            <PricingOptions tiers={tiers} href={(t) => `/checkout?course=${course.slug}&tier=${t.id}`} />
+            <hr className="my-6 border-stone-100" />
+            <h2 className="font-semibold text-stone-900">Have a question first?</h2>
             <p className="mt-1 text-sm text-stone-500">Reach out and we&apos;ll answer your questions and help you get started.</p>
             <div className="mt-5 space-y-3">
               <a
                 href={whatsappLink(enquiry)}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex w-full items-center justify-center gap-2 rounded-full bg-brand-600 px-6 py-3 font-semibold text-white transition hover:bg-brand-700"
+                className="flex w-full items-center justify-center gap-2 rounded-full border border-stone-300 px-6 py-3 font-semibold text-stone-800 transition hover:bg-stone-50"
               >
                 <MessageCircle className="size-5" /> Chat on WhatsApp
               </a>

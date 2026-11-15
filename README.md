@@ -4,7 +4,8 @@ Website and admin tool for Learning Hub Africa's paid tutorials for Air Force In
 
 - **Public site** (no sign-up; students are visitors): home page about the organisation, a tutorials
   catalogue (by course code, e.g. MTH 101) with the three pricing tiers and department/level (100–500)/venue filters (`/tutorials`), and a page per tutorial
-  showing its tutors, locations and schedules, with WhatsApp/phone/email contact buttons.
+  showing its tutors, locations and schedules, with WhatsApp/phone/email contact buttons. Each pricing tier is a card that leads to `/checkout` for
+  that course and tier (online payment via Paystack is not connected yet; the pay button is a placeholder).
 - **Admin** (`/admin`, password protected): assign tutors to tutorials along with a location (and an
   optional schedule), manage courses (level, departments), pricing tiers, departments, tutors and locations.
 
@@ -43,5 +44,6 @@ with an optional schedule). A course can have several assignments, e.g. the same
 
 ## Before going live
 
+- Connect Paystack on the checkout page (`src/app/(site)/checkout/page.tsx`).
 - Replace the shared admin password with proper staff accounts.
 - Replace the placeholder course titles, tutors, schedules and contact details (`src/lib/constants.ts`).
