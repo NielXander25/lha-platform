@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { requireAdmin } from "@/lib/admin-auth";
+import { LEVELS } from "@/lib/constants";
 import { prisma } from "@/lib/prisma";
 import { slugify } from "@/lib/utils";
 
@@ -76,7 +77,7 @@ const CourseSchema = z.object({
     .transform((v) => v || null),
   title: z.string().trim().min(2),
   category: z.string().trim().min(2),
-  level: z.string().trim().min(2),
+  level: z.enum(LEVELS),
   summary: z.string().trim().min(5),
   description: z.string().trim().min(5),
   price: z.coerce.number().int().nonnegative(),
@@ -94,9 +95,33 @@ export async function createCourse(formData: FormData) {
   let slug = base;
   for (let i = 2; await prisma.course.findUnique({ where: { slug } }); i++) slug = `${base}-${i}`;
 
-  await prisma.course.create({ data: { ...parsed.data, slug } });
-  revalidatePath("/admin/courses");
+  await prisma.course.create({
+    data: { ...parsed.data, slug, departments: { connect: departmentIds(formData) } },
+  });
+  revalidatePath("/admin", "layout");
   revalidatePath("/tutorials");
+}
+
+function departmentIds(formData: FormData) {
+  return formData
+    .getAll("departmentIds")
+    .filter((v): v is string => typeof v === "string" && v.length > 0)
+    .map((id) => ({ id }));
+}
+
+// Change which level and departments a course belongs to.
+export async function updateCourseAudience(formData: FormData) {
+  await requireAdmin();
+  const id = String(formData.get("id") ?? "");
+  const level = z.enum(LEVELS).safeParse(formData.get("level"));
+  if (!level.success) fail("/admin/courses", "Choose a level from 100 to 500.");
+  const course = await prisma.course.update({
+    where: { id },
+    data: { level: level.data, departments: { set: departmentIds(formData) } },
+  });
+  revalidatePath("/admin", "layout");
+  revalidatePath("/tutorials");
+  revalidatePath(`/tutorials/${course.slug}`);
 }
 
 const CoursePriceSchema = z.object({
@@ -124,6 +149,29 @@ export async function toggleCourse(formData: FormData) {
   revalidatePath("/admin/courses");
   revalidatePath("/tutorials");
   revalidatePath(`/tutorials/${course.slug}`);
+}
+
+/* ---------- Departments ---------- */
+
+export async function createDepartment(formData: FormData) {
+  await requireAdmin();
+  const name = String(formData.get("name") ?? "").trim();
+  if (name.length < 2) fail("/admin/departments", "Please enter a department name.");
+  if (await prisma.department.findUnique({ where: { name } })) {
+    fail("/admin/departments", "That department already exists.");
+  }
+  await prisma.department.create({ data: { name } });
+  revalidatePath("/admin", "layout");
+  revalidatePath("/tutorials", "layout");
+}
+
+export async function toggleDepartment(formData: FormData) {
+  await requireAdmin();
+  const id = String(formData.get("id") ?? "");
+  const department = await prisma.department.findUniqueOrThrow({ where: { id } });
+  await prisma.department.update({ where: { id }, data: { active: !department.active } });
+  revalidatePath("/admin", "layout");
+  revalidatePath("/tutorials", "layout");
 }
 
 /* ---------- Tutors ---------- */

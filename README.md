@@ -3,10 +3,10 @@
 Website and admin tool for Learning Hub Africa's paid tutorials for Air Force Institute of Technology (AFIT) students.
 
 - **Public site** (no sign-up; students are visitors): home page about the organisation, a tutorials
-  catalogue (by course code, e.g. MTH 101) with per-semester prices and subject/level/venue filters (`/tutorials`), and a page per tutorial
+  catalogue (by course code, e.g. MTH 101) with per-semester prices and department/level (100–500)/venue filters (`/tutorials`), and a page per tutorial
   showing its tutors, locations and schedules, with WhatsApp/phone/email contact buttons.
 - **Admin** (`/admin`, password protected): assign tutors to tutorials along with a location (and an
-  optional schedule), manage course prices, tutors and locations.
+  optional schedule), manage courses (price, level, departments), departments, tutors and locations.
 
 ## Stack
 
@@ -18,7 +18,7 @@ Next.js 16 (App Router, Server Actions) · TypeScript · Tailwind CSS 4 · Prism
 cp .env.example .env      # then set ADMIN_PASSWORD
 npm install
 npm run db:push           # create the local SQLite database
-npm run db:seed           # load starter courses, tutors and AFIT venues
+npm run db:seed           # load starter departments, courses, tutors and AFIT venues
 npm run dev
 ```
 
@@ -38,7 +38,7 @@ username and password: use any username and the `ADMIN_PASSWORD` from `.env`.
 
 ## Data model
 
-`Course` (course code, faculty, level, price per semester) · `Tutor` · `Location` (campus venue, e.g. LR 101, Hall C1) · `Assignment` (a tutor teaching a course at a location,
+`Department` (engineering departments) · `Course` (course code, level 100–500, price per semester, linked to the departments that take it) · `Tutor` · `Location` (campus venue, e.g. LR 101, Hall C1) · `Assignment` (a tutor teaching a course at a location,
 with an optional schedule). A course can have several assignments, e.g. the same course in LR 101 and Hall C1.
 
 ## Before going live

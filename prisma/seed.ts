@@ -44,6 +44,18 @@ const courses = [
     "Simplified notes, worked calculations and past questions covering the CHM 101 course outline."),
 ];
 
+const departments = [
+  "Electrical Engineering",
+  "Mechatronics Engineering",
+  "Mechanical Engineering",
+  "Aerospace Engineering",
+  "Civil Engineering",
+  "Telecommunication Engineering",
+  "Information Communication Engineering",
+  "Metallurgical and Materials Engineering",
+  "Automotive Engineering",
+];
+
 const tutors = [
   { name: "Tutor One", email: "tutor1@example.com", subjects: "Mathematics", bio: "Replace with a real tutor." },
   { name: "Tutor Two", email: "tutor2@example.com", subjects: "Physics", bio: "Replace with a real tutor." },
@@ -69,7 +81,12 @@ async function main() {
     console.log("Database already has data. Run `npm run db:reset` to replace it with the starter data.");
     return;
   }
-  await prisma.course.createMany({ data: courses });
+  await prisma.department.createMany({ data: departments.map((name) => ({ name })) });
+  // The 100 Level courses are general courses taken by every department.
+  const allDepartments = (await prisma.department.findMany({ select: { id: true } })).map(({ id }) => ({ id }));
+  for (const data of courses) {
+    await prisma.course.create({ data: { ...data, departments: { connect: allDepartments } } });
+  }
   await prisma.tutor.createMany({ data: tutors });
   await prisma.location.createMany({ data: locations });
   for (const [code, email, locationName, schedule] of assignments) {
@@ -80,7 +97,7 @@ async function main() {
     ]);
     await prisma.assignment.create({ data: { courseId: c.id, tutorId: t.id, locationId: l.id, schedule } });
   }
-  console.log(`Seeded ${courses.length} courses, ${tutors.length} tutors, ${locations.length} locations.`);
+  console.log(`Seeded ${departments.length} departments, ${courses.length} courses, ${tutors.length} tutors, ${locations.length} locations.`);
 }
 
 main()

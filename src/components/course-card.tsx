@@ -1,9 +1,17 @@
 import Link from "next/link";
-import { ArrowRight, Clock, MapPin, Repeat } from "lucide-react";
+import { ArrowRight, Clock, GraduationCap, MapPin, Repeat } from "lucide-react";
 import type { Course } from "@prisma/client";
 import { formatPrice } from "@/lib/utils";
 
-export function CourseCard({ course, places }: { course: Course; places: string[] }) {
+export function CourseCard({
+  course,
+  places,
+  departments,
+}: {
+  course: Course;
+  places: string[];
+  departments: string;
+}) {
   return (
     <Link
       href={`/tutorials/${course.slug}`}
@@ -16,7 +24,12 @@ export function CourseCard({ course, places }: { course: Course; places: string[
       {course.code && <p className="mt-4 text-sm font-bold tracking-wide text-sun-600">{course.code}</p>}
       <h3 className={`font-display text-xl font-semibold text-brand-950 ${course.code ? "mt-1" : "mt-4"}`}>{course.title}</h3>
       <p className="mt-2 flex-1 text-sm leading-relaxed text-stone-600">{course.summary}</p>
-      <div className="mt-5 flex flex-wrap gap-x-4 gap-y-1.5 text-xs text-stone-500">
+      {departments && (
+        <p className="mt-4 flex gap-1.5 text-xs text-stone-500">
+          <GraduationCap className="size-3.5 shrink-0" /> {departments}
+        </p>
+      )}
+      <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1.5 text-xs text-stone-500">
         <span className="flex items-center gap-1.5">
           <Repeat className="size-3.5" /> {course.sessionsPerWeek}× / week
         </span>

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { connection } from "next/server";
 import {
   ArrowRight,
   BadgeCheck,
@@ -11,10 +12,12 @@ import {
   Target,
   Users,
 } from "lucide-react";
+import { LEVELS } from "@/lib/constants";
+import { prisma } from "@/lib/prisma";
 
 const stats = [
-  { value: "By course code", label: "Tutorials follow your course outline" },
-  { value: "Per course", label: "Clear prices per semester" },
+  { value: "100–500", label: "Level courses, by course code" },
+  { value: "Engineering", label: "Every AFIT engineering department" },
   { value: "On campus", label: "Lecture rooms and halls you know" },
   { value: "Small groups", label: "So every question gets answered" },
 ];
@@ -46,7 +49,7 @@ const steps = [
   {
     icon: Search,
     title: "Find your course",
-    body: "Search by faculty and level to find the course you need help with, with prices up front.",
+    body: "Pick your department and level to find the course you need help with, with prices up front.",
   },
   {
     icon: GraduationCap,
@@ -65,7 +68,14 @@ const steps = [
   },
 ];
 
-export default function HomePage() {
+export default async function HomePage() {
+  await connection();
+  const departments = await prisma.department.findMany({
+    where: { active: true },
+    select: { name: true },
+    orderBy: { name: "asc" },
+  });
+
   return (
     <>
       {/* Hero */}
@@ -99,9 +109,9 @@ export default function HomePage() {
               .
             </h1>
             <p className="mt-6 max-w-xl text-lg leading-relaxed text-stone-600">
-              Learning Hub Africa offers paid tutorials for Air Force Institute of Technology
-              courses like MTH 101, PHY 101 and CHM 101. Our tutors explain the hard parts clearly
-              and prepare you for tests and exams, right on campus.
+              Learning Hub Africa offers paid tutorials for engineering students at the Air Force
+              Institute of Technology, from 100 to 500 Level. Our tutors explain the hard parts
+              clearly and prepare you for tests and exams, right on campus.
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-3">
               <Link
@@ -188,8 +198,9 @@ export default function HomePage() {
               together tutors who know each course inside out and the students who need them.
             </p>
             <p className="mt-4 leading-relaxed text-stone-600">
-              From mathematics to physics and chemistry, our tutorials follow your AFIT course
-              outline and are measured by one thing: how well our students do.
+              From 100 Level mathematics, physics and chemistry to 500 Level departmental courses,
+              our tutorials follow your AFIT course outline and are measured by one thing: how well
+              our students do.
             </p>
           </div>
           <div className="grid gap-5 sm:grid-cols-2">
@@ -199,6 +210,44 @@ export default function HomePage() {
                 <h3 className="mt-4 text-lg font-semibold text-stone-900">{v.title}</h3>
                 <p className="mt-2 text-sm leading-relaxed text-stone-600">{v.body}</p>
               </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Departments */}
+      <section className="border-t border-stone-200 bg-white">
+        <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6">
+          <p className="text-sm font-semibold uppercase tracking-wider text-sun-600">Who it&apos;s for</p>
+          <h2 className="mt-3 max-w-2xl font-display text-3xl font-semibold tracking-tight text-brand-950 sm:text-4xl">
+            Every engineering department, 100 to 500 Level.
+          </h2>
+          <p className="mt-4 max-w-2xl text-stone-600">
+            Choose your department or level to see the tutorials for your courses.
+          </p>
+          <ul className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {departments.map((d) => (
+              <li key={d.name}>
+                <Link
+                  href={`/tutorials?department=${encodeURIComponent(d.name)}`}
+                  className="group flex h-full items-center justify-between gap-3 rounded-xl border border-stone-200 bg-[#fbfaf7] px-4 py-3.5 font-medium text-stone-800 transition hover:border-brand-300 hover:bg-brand-50"
+                >
+                  {d.name}
+                  <ArrowRight className="size-4 shrink-0 text-brand-600 transition group-hover:translate-x-0.5" />
+                </Link>
+              </li>
+            ))}
+          </ul>
+          <div className="mt-6 flex flex-wrap items-center gap-2">
+            <span className="mr-1 text-sm font-semibold text-stone-500">By level:</span>
+            {LEVELS.map((level) => (
+              <Link
+                key={level}
+                href={`/tutorials?level=${encodeURIComponent(level)}`}
+                className="rounded-full border border-stone-200 px-3.5 py-1.5 text-sm font-medium text-stone-600 transition hover:border-brand-300 hover:text-brand-700"
+              >
+                {level}
+              </Link>
             ))}
           </div>
         </div>

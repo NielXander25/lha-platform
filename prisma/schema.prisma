@@ -17,7 +17,8 @@ model Course {
   code        String?      // course code, e.g. "MTH 101"
   title       String
   category    String       // subject, e.g. Mathematics, Physics, Chemistry
-  level       String       // e.g. 100 Level, 200 Level
+  level       String       // "100 Level" to "500 Level"
+  departments Department[] // departments whose students take this course
   summary     String
   description String
   price       Int          // whole currency units (NGN)
@@ -28,6 +29,15 @@ model Course {
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
   assignments Assignment[]
+}
+
+// An engineering department, e.g. "Mechatronics Engineering".
+model Department {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  courses   Course[]
 }
 
 model Tutor {

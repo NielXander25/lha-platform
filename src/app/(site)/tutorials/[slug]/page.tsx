@@ -13,6 +13,7 @@ async function getCourse(slug: string) {
   return prisma.course.findFirst({
     where: { slug, active: true },
     include: {
+      departments: { where: { active: true }, select: { name: true }, orderBy: { name: "asc" } },
       assignments: {
         where: { tutor: { active: true }, location: { active: true } },
         include: { tutor: true, location: true },
@@ -68,6 +69,19 @@ export default async function CoursePage({ params }: { params: Params }) {
 
           <h2 className="mt-10 text-lg font-semibold text-stone-900">About this tutorial</h2>
           <p className="mt-3 leading-relaxed text-stone-600">{course.description}</p>
+
+          {course.departments.length > 0 && (
+            <>
+              <h2 className="mt-10 text-lg font-semibold text-stone-900">Departments</h2>
+              <ul className="mt-4 flex flex-wrap gap-2">
+                {course.departments.map((d) => (
+                  <li key={d.name} className="rounded-full border border-stone-200 bg-white px-3 py-1.5 text-sm text-stone-600">
+                    {d.name}
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
 
           <h2 className="mt-10 text-lg font-semibold text-stone-900">Tutors & locations</h2>
           {course.assignments.length === 0 ? (

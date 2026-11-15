@@ -1,80 +1,124 @@
 import Link from "next/link";
 import { connection } from "next/server";
-import { createCourse, toggleCourse, updateCoursePrice } from "../actions";
+import { createCourse, toggleCourse, updateCourseAudience, updateCoursePrice } from "../actions";
 import { ActiveBadge, Card, ErrorBanner, Field, PageHeader, SubmitButton, firstString, inputClass } from "@/components/admin-ui";
+import { LEVELS, shortDepartment } from "@/lib/constants";
 import { prisma } from "@/lib/prisma";
+import { cn } from "@/lib/utils";
 
 type SearchParams = Promise<{ [key: string]: string | string[] | undefined }>;
 
 export default async function AdminCoursesPage({ searchParams }: { searchParams: SearchParams }) {
   await connection();
   const params = await searchParams;
-  const courses = await prisma.course.findMany({
-    orderBy: [{ level: "asc" }, { code: "asc" }, { title: "asc" }],
-    include: { _count: { select: { assignments: true } } },
-  });
+  const [courses, departments] = await Promise.all([
+    prisma.course.findMany({
+      orderBy: [{ level: "asc" }, { code: "asc" }, { title: "asc" }],
+      include: { departments: { select: { id: true } }, _count: { select: { assignments: true } } },
+    }),
+    prisma.department.findMany({ where: { active: true }, orderBy: { name: "asc" } }),
+  ]);
 
   return (
     <div>
-      <PageHeader title="Courses & prices" description="Set what students see on the tutorials page." />
+      <PageHeader title="Courses & prices" description="Set each course's price, level and the departments that take it." />
       <ErrorBanner message={firstString(params.error)} />
 
-      <Card className="overflow-x-auto">
-        <table className="w-full min-w-[720px] text-left text-sm">
-          <thead className="border-b border-stone-200 text-xs uppercase tracking-wide text-stone-500">
-            <tr>
-              <th className="px-4 py-3 font-semibold">Course</th>
-              <th className="px-4 py-3 font-semibold">Tutors assigned</th>
-              <th className="px-4 py-3 font-semibold">Price (NGN)</th>
-              <th className="px-4 py-3 font-semibold">Visibility</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-stone-100">
-            {courses.map((c) => (
-              <tr key={c.id}>
-                <td className="px-4 py-3">
-                  <Link href={`/tutorials/${c.slug}`} className="font-medium text-stone-900 hover:text-brand-700">{c.code ? `${c.code}: ` : ""}{c.title}</Link>
-                  <p className="text-xs text-stone-500">{c.category} · {c.level}</p>
-                </td>
-                <td className="px-4 py-3 text-stone-600">{c._count.assignments}</td>
-                <td className="px-4 py-3">
-                  <form action={updateCoursePrice} className="flex items-center gap-2">
-                    <input type="hidden" name="id" value={c.id} />
-                    <input name="price" type="number" min={0} step={500} defaultValue={c.price} className={`${inputClass} w-28`} aria-label="Price" />
-                    <span className="text-stone-400">/</span>
-                    <input name="billingUnit" defaultValue={c.billingUnit} className={`${inputClass} w-24`} aria-label="Billing unit" />
-                    <SubmitButton variant="ghost">Save</SubmitButton>
-                  </form>
-                </td>
-                <td className="px-4 py-3">
-                  <form action={toggleCourse} className="flex items-center gap-3">
-                    <input type="hidden" name="id" value={c.id} />
-                    <ActiveBadge active={c.active} />
-                    <button className="text-xs font-semibold text-brand-700 hover:underline">{c.active ? "Hide" : "Show"}</button>
-                  </form>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </Card>
+      <div className="space-y-4">
+        {courses.map((c) => {
+          const linked = new Set(c.departments.map((d) => d.id));
+          return (
+            <Card key={c.id} className="p-5">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <Link href={`/tutorials/${c.slug}`} className="font-semibold text-stone-900 hover:text-brand-700">
+                    {c.code ? `${c.code}: ` : ""}{c.title}
+                  </Link>
+                  <p className="text-sm text-stone-500">
+                    {c.category} · {c._count.assignments} tutor{c._count.assignments === 1 ? "" : "s"} assigned
+                  </p>
+                </div>
+                <form action={toggleCourse} className="flex items-center gap-3">
+                  <input type="hidden" name="id" value={c.id} />
+                  <ActiveBadge active={c.active} />
+                  <button className="text-xs font-semibold text-brand-700 hover:underline">{c.active ? "Hide" : "Show"}</button>
+                </form>
+              </div>
+
+              <div className="mt-4 space-y-5 border-t border-stone-100 pt-4">
+                <form action={updateCoursePrice} className="flex flex-wrap items-end gap-2">
+                  <input type="hidden" name="id" value={c.id} />
+                  <Field label="Price (NGN)">
+                    <input name="price" type="number" min={0} step={500} defaultValue={c.price} className={cn(inputClass, "w-32")} />
+                  </Field>
+                  <Field label="Per">
+                    <input name="billingUnit" defaultValue={c.billingUnit} className={cn(inputClass, "w-32")} />
+                  </Field>
+                  <SubmitButton variant="ghost">Save price</SubmitButton>
+                </form>
+
+                <form key={`${c.level}:${[...linked].sort().join(",")}`} action={updateCourseAudience} className="space-y-3">
+                  <input type="hidden" name="id" value={c.id} />
+                  <p className="text-xs font-semibold uppercase tracking-wide text-stone-500">Departments that take this course</p>
+                  <DepartmentBoxes departments={departments} checked={(id) => linked.has(id)} />
+                  <div className="flex flex-wrap items-end gap-2">
+                    <Field label="Level">
+                      <select name="level" defaultValue={c.level} className={cn(inputClass, "w-32")}>
+                        {LEVELS.map((l) => <option key={l}>{l}</option>)}
+                      </select>
+                    </Field>
+                    <SubmitButton variant="ghost">Save level & departments</SubmitButton>
+                  </div>
+                </form>
+              </div>
+            </Card>
+          );
+        })}
+      </div>
 
       <h2 className="mb-4 mt-10 text-lg font-semibold text-stone-900">Add a course</h2>
       <Card className="p-5">
         <form action={createCourse} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <Field label="Course code"><input name="code" placeholder="e.g. MTH 101" className={inputClass} /></Field>
-          <div className="lg:col-span-3"><Field label="Course title"><input name="title" required placeholder="e.g. Elementary Mathematics I" className={inputClass} /></Field></div>
-          <Field label="Faculty"><input name="category" required placeholder="e.g. Sciences" className={inputClass} /></Field>
-          <Field label="Level"><input name="level" required placeholder="e.g. 100 Level" className={inputClass} /></Field>
+          <Field label="Course code"><input name="code" placeholder="e.g. EEE 201" className={inputClass} /></Field>
+          <div className="lg:col-span-3"><Field label="Course title"><input name="title" required placeholder="e.g. Applied Electricity I" className={inputClass} /></Field></div>
+          <Field label="Subject"><input name="category" required placeholder="e.g. Mathematics" className={inputClass} /></Field>
+          <Field label="Level">
+            <select name="level" defaultValue="100 Level" className={inputClass}>
+              {LEVELS.map((l) => <option key={l}>{l}</option>)}
+            </select>
+          </Field>
           <Field label="Price (NGN)"><input name="price" type="number" min={0} step={500} required className={inputClass} /></Field>
           <Field label="Charged per"><input name="billingUnit" defaultValue="semester" required className={inputClass} /></Field>
           <Field label="Sessions / week"><input name="sessionsPerWeek" type="number" min={1} max={14} defaultValue={2} required className={inputClass} /></Field>
           <Field label="Session length (mins)"><input name="sessionLengthMins" type="number" min={15} step={15} defaultValue={120} required className={inputClass} /></Field>
+          <div className="sm:col-span-2 lg:col-span-4">
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-stone-500">Departments that take this course</p>
+            <DepartmentBoxes departments={departments} checked={() => false} />
+          </div>
           <div className="sm:col-span-2 lg:col-span-4"><Field label="Short summary"><input name="summary" required className={inputClass} /></Field></div>
           <div className="sm:col-span-2 lg:col-span-4"><Field label="Full description"><textarea name="description" rows={3} required className={inputClass} /></Field></div>
           <div><SubmitButton>Add course</SubmitButton></div>
         </form>
       </Card>
+    </div>
+  );
+}
+
+function DepartmentBoxes({
+  departments,
+  checked,
+}: {
+  departments: { id: string; name: string }[];
+  checked: (id: string) => boolean;
+}) {
+  return (
+    <div className="flex flex-wrap gap-x-5 gap-y-2">
+      {departments.map((d) => (
+        <label key={d.id} className="flex items-center gap-1.5 text-sm text-stone-700">
+          <input type="checkbox" name="departmentIds" value={d.id} defaultChecked={checked(d.id)} className="size-4 accent-brand-600" />
+          {shortDepartment(d.name)}
+        </label>
+      ))}
     </div>
   );
 }

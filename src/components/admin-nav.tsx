@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BookOpen, ClipboardList, MapPin, Users } from "lucide-react";
+import { BookOpen, Building2, ClipboardList, MapPin, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const items = [
   { href: "/admin", label: "Tutor assignments", icon: ClipboardList },
   { href: "/admin/courses", label: "Courses & prices", icon: BookOpen },
+  { href: "/admin/departments", label: "Departments", icon: Building2 },
   { href: "/admin/tutors", label: "Tutors", icon: Users },
   { href: "/admin/locations", label: "Locations", icon: MapPin },
 ];

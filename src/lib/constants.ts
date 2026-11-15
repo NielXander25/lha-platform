@@ -13,3 +13,10 @@ export function whatsappLink(message?: string) {
   const text = message ? `?text=${encodeURIComponent(message)}` : "";
   return `https://wa.me/${SITE.whatsapp}${text}`;
 }
+
+export const LEVELS = ["100 Level", "200 Level", "300 Level", "400 Level", "500 Level"] as const;
+
+// "Mechatronics Engineering" -> "Mechatronics" for compact labels.
+export function shortDepartment(name: string) {
+  return name.replace(/\s+Engineering$/i, "");
+}
