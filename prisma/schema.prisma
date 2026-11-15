@@ -26,7 +26,7 @@ model Course {
   active      Boolean      @default(true)
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
-  enrollments Enrollment[]
+  assignments Assignment[]
 }
 
 model Tutor {
@@ -38,7 +38,7 @@ model Tutor {
   bio         String?
   active      Boolean      @default(true)
   createdAt   DateTime     @default(now())
-  enrollments Enrollment[]
+  assignments Assignment[]
 }
 
 // Where a tutorial takes place: a learning centre, a home-tutoring area, or online.
@@ -50,35 +50,21 @@ model Location {
   isOnline    Boolean      @default(false)
   active      Boolean      @default(true)
   createdAt   DateTime     @default(now())
-  enrollments Enrollment[]
+  assignments Assignment[]
 }
 
-model Student {
-  id          String       @id @default(cuid())
-  name        String
-  email       String       @unique
-  phone       String
-  createdAt   DateTime     @default(now())
-  enrollments Enrollment[]
-}
+// A tutor teaching a course at a location. Visitors see these on the course page.
+model Assignment {
+  id         String   @id @default(cuid())
+  courseId   String
+  tutorId    String
+  locationId String
+  schedule   String?  // free text, e.g. "Tue & Thu, 4:00 pm"
+  createdAt  DateTime @default(now())
 
-// A student's request for a course. Staff assign a tutor and a location to it.
-model Enrollment {
-  id                  String    @id @default(cuid())
-  studentId           String
-  courseId            String
-  tutorId             String?
-  locationId          String?
-  preferredLocationId String?   // what the student asked for when signing up
-  status              String    @default("PENDING") // PENDING | ASSIGNED | ACTIVE | COMPLETED | CANCELLED
-  notes               String?
-  createdAt           DateTime  @default(now())
-  updatedAt           DateTime  @updatedAt
+  course   Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  tutor    Tutor    @relation(fields: [tutorId], references: [id], onDelete: Cascade)
+  location Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
 
-  student  Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  course   Course    @relation(fields: [courseId], references: [id], onDelete: Restrict)
-  tutor    Tutor?    @relation(fields: [tutorId], references: [id], onDelete: SetNull)
-  location Location? @relation(fields: [locationId], references: [id], onDelete: SetNull)
-
-  @@index([status])
+  @@unique([courseId, tutorId, locationId])
 }

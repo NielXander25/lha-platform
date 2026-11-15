@@ -4,14 +4,8 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { requireAdmin } from "@/lib/admin-auth";
-import { ENROLLMENT_STATUSES } from "@/lib/constants";
 import { prisma } from "@/lib/prisma";
 import { slugify } from "@/lib/utils";
-
-const optionalId = z
-  .string()
-  .optional()
-  .transform((v) => (v ? v : null));
 
 function fail(path: string, message: string): never {
   redirect(`${path}?error=${encodeURIComponent(message)}`);
@@ -23,30 +17,52 @@ function form(formData: FormData) {
   );
 }
 
-/* ---------- Enrollments: assign tutor + location ---------- */
+/* ---------- Assignments: tutor + location for a course ---------- */
 
-const AssignSchema = z.object({
-  enrollmentId: z.string().min(1),
-  tutorId: optionalId,
-  locationId: optionalId,
-  status: z.enum(ENROLLMENT_STATUSES),
+const AssignmentSchema = z.object({
+  courseId: z.string().min(1),
+  tutorId: z.string().min(1, "Choose a tutor."),
+  locationId: z.string().min(1, "Choose a location."),
+  schedule: z.string().trim().max(120).optional(),
 });
 
-export async function updateEnrollment(formData: FormData) {
-  await requireAdmin();
-  const parsed = AssignSchema.safeParse(form(formData));
-  if (!parsed.success) fail("/admin", "Invalid enrolment update.");
-  const { enrollmentId, tutorId, locationId } = parsed.data;
-  let { status } = parsed.data;
-
-  // Moving out of "pending" automatically once both a tutor and location are set.
-  if (status === "PENDING" && tutorId && locationId) status = "ASSIGNED";
-
-  await prisma.enrollment.update({
-    where: { id: enrollmentId },
-    data: { tutorId, locationId, status },
-  });
+async function revalidateCourse(courseId: string) {
+  const course = await prisma.course.findUnique({ where: { id: courseId }, select: { slug: true } });
   revalidatePath("/admin");
+  revalidatePath("/tutorials");
+  if (course) revalidatePath(`/tutorials/${course.slug}`);
+}
+
+export async function createAssignment(formData: FormData) {
+  await requireAdmin();
+  const parsed = AssignmentSchema.safeParse(form(formData));
+  if (!parsed.success) fail("/admin", parsed.error.issues[0]?.message ?? "Invalid assignment.");
+  const { courseId, tutorId, locationId, schedule } = parsed.data;
+
+  const existing = await prisma.assignment.findUnique({
+    where: { courseId_tutorId_locationId: { courseId, tutorId, locationId } },
+  });
+  if (existing) fail("/admin", "That tutor is already assigned to this tutorial at that location.");
+
+  await prisma.assignment.create({
+    data: { courseId, tutorId, locationId, schedule: schedule || null },
+  });
+  await revalidateCourse(courseId);
+}
+
+export async function updateAssignmentSchedule(formData: FormData) {
+  await requireAdmin();
+  const id = String(formData.get("id") ?? "");
+  const schedule = String(formData.get("schedule") ?? "").trim().slice(0, 120);
+  const a = await prisma.assignment.update({ where: { id }, data: { schedule: schedule || null } });
+  await revalidateCourse(a.courseId);
+}
+
+export async function deleteAssignment(formData: FormData) {
+  await requireAdmin();
+  const id = String(formData.get("id") ?? "");
+  const a = await prisma.assignment.delete({ where: { id } });
+  await revalidateCourse(a.courseId);
 }
 
 /* ---------- Courses ---------- */
@@ -132,7 +148,8 @@ export async function toggleTutor(formData: FormData) {
   const id = String(formData.get("id") ?? "");
   const tutor = await prisma.tutor.findUniqueOrThrow({ where: { id } });
   await prisma.tutor.update({ where: { id }, data: { active: !tutor.active } });
-  revalidatePath("/admin/tutors");
+  revalidatePath("/admin", "layout");
+  revalidatePath("/tutorials", "layout");
 }
 
 /* ---------- Locations ---------- */
@@ -162,5 +179,6 @@ export async function toggleLocation(formData: FormData) {
   const id = String(formData.get("id") ?? "");
   const location = await prisma.location.findUniqueOrThrow({ where: { id } });
   await prisma.location.update({ where: { id }, data: { active: !location.active } });
-  revalidatePath("/admin/locations");
+  revalidatePath("/admin", "layout");
+  revalidatePath("/tutorials", "layout");
 }

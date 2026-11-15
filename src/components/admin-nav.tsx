@@ -6,7 +6,7 @@ import { BookOpen, ClipboardList, MapPin, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const items = [
-  { href: "/admin", label: "Enrolments", icon: ClipboardList },
+  { href: "/admin", label: "Tutor assignments", icon: ClipboardList },
   { href: "/admin/courses", label: "Courses & prices", icon: BookOpen },
   { href: "/admin/tutors", label: "Tutors", icon: Users },
   { href: "/admin/locations", label: "Locations", icon: MapPin },

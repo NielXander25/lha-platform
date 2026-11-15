@@ -49,14 +49,14 @@ const steps = [
     body: "Browse our courses and see clear prices up front, with no hidden fees.",
   },
   {
-    icon: CalendarCheck,
-    title: "Enrol in minutes",
-    body: "Tell us about the student and where you'd like lessons to happen.",
+    icon: GraduationCap,
+    title: "Meet the tutor",
+    body: "Every tutorial shows who teaches it, where it holds and when.",
   },
   {
-    icon: GraduationCap,
-    title: "Get matched with a tutor",
-    body: "We assign the right tutor and location, then confirm your schedule.",
+    icon: CalendarCheck,
+    title: "Get in touch",
+    body: "Call, email or WhatsApp us and we'll help you get started.",
   },
   {
     icon: BookOpen,
@@ -100,8 +100,8 @@ export default function HomePage() {
             </h1>
             <p className="mt-6 max-w-xl text-lg leading-relaxed text-stone-600">
               Learning Hub Africa offers paid, personalised tutorials for primary, secondary and
-              exam-prep students. We match each student with a vetted tutor, at a location that
-              works for them, and track progress every step of the way.
+              exam-prep students, taught by vetted tutors at learning centres across Africa, at
+              home, and online.
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-3">
               <Link
@@ -123,9 +123,9 @@ export default function HomePage() {
           <div className="relative">
             <div className="rounded-3xl border border-stone-200 bg-white p-6 shadow-xl shadow-stone-900/5">
               <div className="flex items-center justify-between">
-                <p className="text-sm font-semibold text-stone-500">Upcoming session</p>
+                <p className="text-sm font-semibold text-stone-500">Featured tutorial</p>
                 <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-800">
-                  Tutor assigned
+                  Now running
                 </span>
               </div>
               <p className="mt-4 font-display text-2xl font-semibold text-brand-950">
@@ -142,14 +142,12 @@ export default function HomePage() {
                   <CalendarCheck className="size-4 text-brand-600" /> Tue & Thu · 4:00 pm
                 </p>
               </div>
-              <div className="mt-6 rounded-2xl bg-brand-50 p-4">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="font-medium text-brand-900">Term progress</span>
-                  <span className="font-semibold text-brand-700">72%</span>
-                </div>
-                <div className="mt-2 h-2 rounded-full bg-brand-100">
-                  <div className="h-2 w-[72%] rounded-full bg-brand-500" />
-                </div>
+              <div className="mt-6 flex items-end justify-between rounded-2xl bg-brand-50 p-4">
+                <span className="text-sm font-medium text-brand-900">Price</span>
+                <span>
+                  <span className="font-display text-2xl font-semibold text-brand-800">₦40,000</span>
+                  <span className="text-sm text-brand-900/70"> / month</span>
+                </span>
               </div>
             </div>
             <div className="absolute -bottom-14 left-8 hidden items-center gap-3 rounded-2xl border border-stone-200 bg-white px-4 py-3 shadow-lg sm:flex">
@@ -211,7 +209,7 @@ export default function HomePage() {
         <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6">
           <p className="text-sm font-semibold uppercase tracking-wider text-sun-400">How it works</p>
           <h2 className="mt-3 max-w-2xl font-display text-3xl font-semibold tracking-tight sm:text-4xl">
-            From sign-up to first lesson in four simple steps.
+            Finding the right tutorial takes four simple steps.
           </h2>
           <ol className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
             {steps.map((s, i) => (
@@ -238,8 +236,8 @@ export default function HomePage() {
               Ready to find the right tutorial?
             </h2>
             <p className="mx-auto mt-4 max-w-xl text-brand-950/80">
-              See every course we offer, compare prices, and enrol online. We&apos;ll then match you
-              with a tutor and a location that suit you.
+              See every course we offer, compare prices, and find out who teaches it and where it
+              takes place.
             </p>
             <Link
               href="/tutorials"

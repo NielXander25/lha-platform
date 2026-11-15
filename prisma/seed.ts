@@ -153,6 +153,35 @@ async function main() {
   if ((await prisma.location.count()) === 0) {
     await prisma.location.createMany({ data: locations });
   }
+  // Sample assignments: [course slug, tutor email, location name, schedule]
+  const assignments: [string, string, string, string][] = [
+    ["primary-maths-english", "fatima.bello@example.com", "Ikeja Learning Centre", "Mon & Wed, 4:00 pm"],
+    ["primary-maths-english", "fatima.bello@example.com", "Online (Live video)", "Sat, 10:00 am"],
+    ["common-entrance-prep", "fatima.bello@example.com", "Lekki Learning Centre", "Tue, Thu & Sat, 3:30 pm"],
+    ["jss-mathematics", "adaeze.okafor@example.com", "Lekki Learning Centre", "Mon & Wed, 5:00 pm"],
+    ["jss-basic-science", "kwame.mensah@example.com", "Wuse Learning Centre", "Tue & Thu, 4:00 pm"],
+    ["sss-mathematics", "adaeze.okafor@example.com", "Lekki Learning Centre", "Tue & Thu, 4:00 pm"],
+    ["sss-mathematics", "chinedu.eze@example.com", "Online (Live video)", "Sat & Sun, 11:00 am"],
+    ["sss-physics-chemistry", "kwame.mensah@example.com", "Wuse Learning Centre", "Mon & Fri, 4:30 pm"],
+    ["sss-physics-chemistry", "kwame.mensah@example.com", "Home tutoring – Port Harcourt", "By arrangement"],
+    ["waec-neco-prep", "adaeze.okafor@example.com", "Ikeja Learning Centre", "Mon, Wed & Fri, 4:00 pm"],
+    ["jamb-utme-prep", "chinedu.eze@example.com", "Online (Live video)", "Mon, Wed & Fri, 6:00 pm"],
+    ["french-beginners", "amina.diallo@example.com", "Online (Live video)", "Tue & Thu, 6:00 pm"],
+    ["coding-for-teens", "chinedu.eze@example.com", "Lekki Learning Centre", "Sat, 12:00 pm"],
+  ];
+  if ((await prisma.assignment.count()) === 0) {
+    for (const [slug, email, locationName, schedule] of assignments) {
+      const [course, tutor, location] = await Promise.all([
+        prisma.course.findUniqueOrThrow({ where: { slug } }),
+        prisma.tutor.findUniqueOrThrow({ where: { email } }),
+        prisma.location.findFirstOrThrow({ where: { name: locationName } }),
+      ]);
+      await prisma.assignment.create({
+        data: { courseId: course.id, tutorId: tutor.id, locationId: location.id, schedule },
+      });
+    }
+  }
+
   console.log(`Seeded ${courses.length} courses, ${tutors.length} tutors, ${locations.length} locations.`);
 }
 

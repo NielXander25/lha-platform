@@ -11,7 +11,7 @@ export default async function AdminCoursesPage({ searchParams }: { searchParams:
   const params = await searchParams;
   const courses = await prisma.course.findMany({
     orderBy: [{ category: "asc" }, { title: "asc" }],
-    include: { _count: { select: { enrollments: true } } },
+    include: { _count: { select: { assignments: true } } },
   });
 
   return (
@@ -24,7 +24,7 @@ export default async function AdminCoursesPage({ searchParams }: { searchParams:
           <thead className="border-b border-stone-200 text-xs uppercase tracking-wide text-stone-500">
             <tr>
               <th className="px-4 py-3 font-semibold">Course</th>
-              <th className="px-4 py-3 font-semibold">Enrolments</th>
+              <th className="px-4 py-3 font-semibold">Tutors assigned</th>
               <th className="px-4 py-3 font-semibold">Price (NGN)</th>
               <th className="px-4 py-3 font-semibold">Visibility</th>
             </tr>
@@ -36,7 +36,7 @@ export default async function AdminCoursesPage({ searchParams }: { searchParams:
                   <Link href={`/tutorials/${c.slug}`} className="font-medium text-stone-900 hover:text-brand-700">{c.title}</Link>
                   <p className="text-xs text-stone-500">{c.category} · {c.level}</p>
                 </td>
-                <td className="px-4 py-3 text-stone-600">{c._count.enrollments}</td>
+                <td className="px-4 py-3 text-stone-600">{c._count.assignments}</td>
                 <td className="px-4 py-3">
                   <form action={updateCoursePrice} className="flex items-center gap-2">
                     <input type="hidden" name="id" value={c.id} />

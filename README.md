@@ -2,8 +2,11 @@
 
 Website and admin tool for Learning Hub Africa's paid tutorials.
 
-- **Public site**: home page about the organisation, a tutorials catalogue with prices (`/tutorials`), course pages with an enrolment form.
-- **Admin** (`/admin`, password protected): review enrolments and assign each one a tutor and a location, manage course prices, tutors and locations.
+- **Public site** (no sign-up; students are visitors): home page about the organisation, a tutorials
+  catalogue with prices and subject/level/location filters (`/tutorials`), and a page per tutorial
+  showing its tutors, locations and schedules, with WhatsApp/phone/email contact buttons.
+- **Admin** (`/admin`, password protected): assign tutors to tutorials along with a location (and an
+  optional schedule), manage course prices, tutors and locations.
 
 ## Stack
 
@@ -35,11 +38,12 @@ username and password: use any username and the `ADMIN_PASSWORD` from `.env`.
 
 ## Data model
 
-`Course` (with price) · `Tutor` · `Location` · `Student` · `Enrollment` (student + course, with an
-assigned tutor, an assigned location and a status: Pending → Assigned → Active → Completed / Cancelled).
+`Course` (with price) · `Tutor` · `Location` · `Assignment` (a tutor teaching a course at a location,
+with an optional schedule). A course can have several assignments, e.g. one tutor online and another at
+a learning centre.
 
 ## Before going live
 
 - Switch the Prisma datasource to PostgreSQL (SQLite files don't persist on serverless hosts).
 - Replace the shared admin password with proper staff accounts.
-- Replace the sample courses, prices, tutors, locations and contact details.
+- Replace the sample courses, prices, tutors, locations and contact details (`src/lib/constants.ts`).

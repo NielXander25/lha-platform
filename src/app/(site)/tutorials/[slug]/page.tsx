@@ -2,15 +2,24 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
-import { ArrowLeft, CalendarDays, Check, Clock, MapPin } from "lucide-react";
+import { ArrowLeft, CalendarDays, Check, Clock, Mail, MapPin, MessageCircle, Phone } from "lucide-react";
+import { SITE, whatsappLink } from "@/lib/constants";
 import { prisma } from "@/lib/prisma";
 import { formatPrice } from "@/lib/utils";
-import { EnrollForm } from "./enroll-form";
 
 type Params = Promise<{ slug: string }>;
 
 async function getCourse(slug: string) {
-  return prisma.course.findFirst({ where: { slug, active: true } });
+  return prisma.course.findFirst({
+    where: { slug, active: true },
+    include: {
+      assignments: {
+        where: { tutor: { active: true }, location: { active: true } },
+        include: { tutor: true, location: true },
+        orderBy: [{ location: { isOnline: "desc" } }, { location: { city: "asc" } }],
+      },
+    },
+  });
 }
 
 export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
@@ -20,23 +29,16 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
 
 export default async function CoursePage({ params }: { params: Params }) {
   await connection();
-  const { slug } = await params;
-  const [course, locations] = await Promise.all([
-    getCourse(slug),
-    prisma.location.findMany({
-      where: { active: true },
-      orderBy: [{ isOnline: "desc" }, { city: "asc" }, { name: "asc" }],
-      select: { id: true, name: true, city: true, isOnline: true },
-    }),
-  ]);
+  const course = await getCourse((await params).slug);
   if (!course) notFound();
 
   const included = [
     `${course.sessionsPerWeek} sessions per week, ${course.sessionLengthMins} minutes each`,
-    "A tutor matched to the student's level and goals",
+    "Taught by a vetted, subject-specialist tutor",
     "Regular progress updates for parents",
-    "Learn at a centre, at home, or online",
   ];
+  const places = new Set(course.assignments.map((a) => a.location.id)).size;
+  const enquiry = `Hello Learning Hub Africa, I'm interested in the "${course.title}" tutorial.`;
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
@@ -56,11 +58,50 @@ export default async function CoursePage({ params }: { params: Params }) {
           <div className="mt-8 grid gap-4 sm:grid-cols-3">
             <Fact icon={CalendarDays} label="Frequency" value={`${course.sessionsPerWeek}× per week`} />
             <Fact icon={Clock} label="Session length" value={`${course.sessionLengthMins} minutes`} />
-            <Fact icon={MapPin} label="Where" value={`${locations.length} location${locations.length === 1 ? "" : "s"}`} />
+            <Fact icon={MapPin} label="Where" value={places ? `${places} location${places === 1 ? "" : "s"}` : "Coming soon"} />
           </div>
 
           <h2 className="mt-10 text-lg font-semibold text-stone-900">About this tutorial</h2>
           <p className="mt-3 leading-relaxed text-stone-600">{course.description}</p>
+
+          <h2 className="mt-10 text-lg font-semibold text-stone-900">Tutors & locations</h2>
+          {course.assignments.length === 0 ? (
+            <p className="mt-3 rounded-2xl border border-dashed border-stone-300 p-6 text-sm text-stone-500">
+              Tutors and locations for this tutorial will be announced soon. Contact us to register your interest.
+            </p>
+          ) : (
+            <ul className="mt-4 grid gap-4 sm:grid-cols-2">
+              {course.assignments.map((a) => (
+                <li key={a.id} className="rounded-2xl border border-stone-200 bg-white p-5">
+                  <div className="flex items-center gap-3">
+                    <span className="grid size-10 shrink-0 place-items-center rounded-full bg-brand-100 font-semibold text-brand-800">
+                      {a.tutor.name.split(" ").map((n) => n[0]).slice(0, 2).join("")}
+                    </span>
+                    <div>
+                      <p className="font-semibold text-stone-900">{a.tutor.name}</p>
+                      <p className="text-xs text-stone-500">{a.tutor.subjects}</p>
+                    </div>
+                  </div>
+                  <div className="mt-4 space-y-2 text-sm text-stone-600">
+                    <p className="flex gap-2">
+                      <MapPin className="mt-0.5 size-4 shrink-0 text-brand-600" />
+                      <span>
+                        <span className="font-medium text-stone-800">{a.location.name}</span>
+                        {!a.location.isOnline && (
+                          <span className="block text-stone-500">{[a.location.address, a.location.city].filter(Boolean).join(", ")}</span>
+                        )}
+                      </span>
+                    </p>
+                    {a.schedule && (
+                      <p className="flex gap-2">
+                        <CalendarDays className="mt-0.5 size-4 shrink-0 text-brand-600" /> {a.schedule}
+                      </p>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
 
           <h2 className="mt-10 text-lg font-semibold text-stone-900">What&apos;s included</h2>
           <ul className="mt-4 space-y-3">
@@ -71,19 +112,6 @@ export default async function CoursePage({ params }: { params: Params }) {
               </li>
             ))}
           </ul>
-
-          {locations.length > 0 && (
-            <>
-              <h2 className="mt-10 text-lg font-semibold text-stone-900">Available locations</h2>
-              <ul className="mt-4 flex flex-wrap gap-2">
-                {locations.map((l) => (
-                  <li key={l.id} className="rounded-full border border-stone-200 bg-white px-3 py-1.5 text-sm text-stone-600">
-                    {l.isOnline ? l.name : `${l.name}, ${l.city}`}
-                  </li>
-                ))}
-              </ul>
-            </>
-          )}
         </div>
 
         <aside className="lg:sticky lg:top-24 lg:self-start">
@@ -94,8 +122,30 @@ export default async function CoursePage({ params }: { params: Params }) {
               <span className="text-stone-500"> / {course.billingUnit}</span>
             </p>
             <hr className="my-6 border-stone-100" />
-            <h2 className="mb-4 font-semibold text-stone-900">Enrol in this tutorial</h2>
-            <EnrollForm courseId={course.id} locations={locations} />
+            <h2 className="font-semibold text-stone-900">Interested in this tutorial?</h2>
+            <p className="mt-1 text-sm text-stone-500">Reach out and we&apos;ll answer your questions and help you get started.</p>
+            <div className="mt-5 space-y-3">
+              <a
+                href={whatsappLink(enquiry)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex w-full items-center justify-center gap-2 rounded-full bg-brand-600 px-6 py-3 font-semibold text-white transition hover:bg-brand-700"
+              >
+                <MessageCircle className="size-5" /> Chat on WhatsApp
+              </a>
+              <a
+                href={`tel:${SITE.phone.replace(/\s/g, "")}`}
+                className="flex w-full items-center justify-center gap-2 rounded-full border border-stone-300 px-6 py-3 font-semibold text-stone-800 transition hover:bg-stone-50"
+              >
+                <Phone className="size-4" /> {SITE.phone}
+              </a>
+              <a
+                href={`mailto:${SITE.email}?subject=${encodeURIComponent(`Enquiry: ${course.title}`)}`}
+                className="flex w-full items-center justify-center gap-2 rounded-full border border-stone-300 px-6 py-3 font-semibold text-stone-800 transition hover:bg-stone-50"
+              >
+                <Mail className="size-4" /> Email us
+              </a>
+            </div>
           </div>
         </aside>
       </div>

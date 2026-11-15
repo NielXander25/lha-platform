@@ -10,7 +10,7 @@ export default async function AdminLocationsPage({ searchParams }: { searchParam
   const params = await searchParams;
   const locations = await prisma.location.findMany({
     orderBy: [{ isOnline: "desc" }, { city: "asc" }, { name: "asc" }],
-    include: { _count: { select: { enrollments: true } } },
+    include: { _count: { select: { assignments: true } } },
   });
 
   return (
@@ -28,7 +28,7 @@ export default async function AdminLocationsPage({ searchParams }: { searchParam
               <p className="text-sm text-stone-500">{[l.address, l.city].filter(Boolean).join(", ")}</p>
             </div>
             <div className="flex items-center gap-4 text-sm">
-              <span className="text-stone-500">{l._count.enrollments} enrolment{l._count.enrollments === 1 ? "" : "s"}</span>
+              <span className="text-stone-500">{l._count.assignments} tutorial assignment{l._count.assignments === 1 ? "" : "s"}</span>
               <ActiveBadge active={l.active} />
               <form action={toggleLocation}>
                 <input type="hidden" name="id" value={l.id} />

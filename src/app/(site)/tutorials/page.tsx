@@ -15,21 +15,40 @@ export default async function TutorialsPage({ searchParams }: { searchParams: Se
   const params = await searchParams;
   const category = typeof params.category === "string" ? params.category : undefined;
   const level = typeof params.level === "string" ? params.level : undefined;
+  const city = typeof params.city === "string" ? params.city : undefined;
 
-  const [courses, allActive] = await Promise.all([
+  const visibleAssignments = { tutor: { active: true }, location: { active: true } };
+
+  const [courses, allActive, locations] = await Promise.all([
     prisma.course.findMany({
-      where: { active: true, category, level },
+      where: {
+        active: true,
+        category,
+        level,
+        ...(city && { assignments: { some: { ...visibleAssignments, location: { active: true, city } } } }),
+      },
+      include: {
+        assignments: { where: visibleAssignments, select: { location: { select: { city: true, isOnline: true } } } },
+      },
       orderBy: [{ price: "asc" }, { title: "asc" }],
     }),
     prisma.course.findMany({ where: { active: true }, select: { category: true, level: true } }),
+    prisma.location.findMany({
+      where: { active: true, assignments: { some: { tutor: { active: true }, course: { active: true } } } },
+      select: { city: true, isOnline: true },
+    }),
   ]);
 
   const categories = [...new Set(allActive.map((c) => c.category))].sort();
   const levels = [...new Set(allActive.map((c) => c.level))].sort();
+  const cities = [...new Set(locations.map((l) => l.city))].sort((a, b) =>
+    a === "Anywhere" ? -1 : b === "Anywhere" ? 1 : a.localeCompare(b),
+  );
+  const cityLabel = (c: string) => (locations.some((l) => l.city === c && l.isOnline) ? "Online" : c);
 
-  const hrefWith = (key: "category" | "level", value?: string) => {
+  const hrefWith = (key: "category" | "level" | "city", value?: string) => {
     const next = new URLSearchParams();
-    const merged = { category, level, [key]: value };
+    const merged = { category, level, city, [key]: value };
     for (const [k, v] of Object.entries(merged)) if (v) next.set(k, v);
     const qs = next.toString();
     return qs ? `/tutorials?${qs}` : "/tutorials";
@@ -43,14 +62,15 @@ export default async function TutorialsPage({ searchParams }: { searchParams: Se
           Courses & pricing
         </h1>
         <p className="mt-4 text-stone-600">
-          Clear prices, no hidden fees. Pick a tutorial, enrol, and we&apos;ll assign a tutor and a
-          location that suit you.
+          Clear prices, no hidden fees. See who teaches each tutorial and where it takes place, then
+          get in touch to join.
         </p>
       </header>
 
       <div className="mt-10 space-y-3">
         <FilterRow label="Subject" items={categories} active={category} href={(v) => hrefWith("category", v)} />
         <FilterRow label="Level" items={levels} active={level} href={(v) => hrefWith("level", v)} />
+        <FilterRow label="Where" items={cities} active={city} href={(v) => hrefWith("city", v)} format={cityLabel} />
       </div>
 
       {courses.length === 0 ? (
@@ -63,7 +83,11 @@ export default async function TutorialsPage({ searchParams }: { searchParams: Se
       ) : (
         <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {courses.map((course) => (
-            <CourseCard key={course.id} course={course} />
+            <CourseCard
+              key={course.id}
+              course={course}
+              places={[...new Set(course.assignments.map((a) => (a.location.isOnline ? "Online" : a.location.city)))]}
+            />
           ))}
         </div>
       )}
@@ -76,11 +100,13 @@ function FilterRow({
   items,
   active,
   href,
+  format = (v) => v,
 }: {
   label: string;
   items: string[];
   active?: string;
   href: (value?: string) => string;
+  format?: (value: string) => string;
 }) {
   const pill = "rounded-full border px-3.5 py-1.5 text-sm font-medium transition";
   return (
@@ -98,7 +124,7 @@ function FilterRow({
           href={href(item)}
           className={cn(pill, active === item ? "border-brand-600 bg-brand-600 text-white" : "border-stone-200 bg-white text-stone-600 hover:border-brand-300")}
         >
-          {item}
+          {format(item)}
         </Link>
       ))}
     </div>

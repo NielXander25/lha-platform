@@ -1,9 +1,9 @@
 import Link from "next/link";
-import { ArrowRight, Clock, Repeat } from "lucide-react";
+import { ArrowRight, Clock, MapPin, Repeat } from "lucide-react";
 import type { Course } from "@prisma/client";
 import { formatPrice } from "@/lib/utils";
 
-export function CourseCard({ course }: { course: Course }) {
+export function CourseCard({ course, places }: { course: Course; places: string[] }) {
   return (
     <Link
       href={`/tutorials/${course.slug}`}
@@ -15,12 +15,15 @@ export function CourseCard({ course }: { course: Course }) {
       </div>
       <h3 className="mt-4 font-display text-xl font-semibold text-brand-950">{course.title}</h3>
       <p className="mt-2 flex-1 text-sm leading-relaxed text-stone-600">{course.summary}</p>
-      <div className="mt-5 flex gap-4 text-xs text-stone-500">
+      <div className="mt-5 flex flex-wrap gap-x-4 gap-y-1.5 text-xs text-stone-500">
         <span className="flex items-center gap-1.5">
           <Repeat className="size-3.5" /> {course.sessionsPerWeek}× / week
         </span>
         <span className="flex items-center gap-1.5">
           <Clock className="size-3.5" /> {course.sessionLengthMins} min
+        </span>
+        <span className="flex items-center gap-1.5">
+          <MapPin className="size-3.5" /> {places.length ? places.join(", ") : "Locations coming soon"}
         </span>
       </div>
       <div className="mt-5 flex items-end justify-between border-t border-stone-100 pt-5">

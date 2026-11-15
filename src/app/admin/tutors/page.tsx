@@ -10,12 +10,12 @@ export default async function AdminTutorsPage({ searchParams }: { searchParams: 
   const params = await searchParams;
   const tutors = await prisma.tutor.findMany({
     orderBy: { name: "asc" },
-    include: { enrollments: { where: { status: { in: ["ASSIGNED", "ACTIVE"] } }, select: { id: true } } },
+    include: { assignments: { select: { course: { select: { title: true } } } } },
   });
 
   return (
     <div>
-      <PageHeader title="Tutors" description="Only active tutors can be assigned to enrolments." />
+      <PageHeader title="Tutors" description="Only active tutors can be assigned, and inactive tutors are hidden from visitors." />
       <ErrorBanner message={firstString(params.error)} />
 
       <div className="grid gap-4 md:grid-cols-2">
@@ -31,7 +31,11 @@ export default async function AdminTutorsPage({ searchParams }: { searchParams: 
             <p className="mt-3 text-sm"><span className="text-stone-500">Subjects:</span> {t.subjects}</p>
             {t.bio && <p className="mt-1 text-sm text-stone-600">{t.bio}</p>}
             <div className="mt-4 flex items-center justify-between border-t border-stone-100 pt-3 text-sm">
-              <span className="text-stone-500">{t.enrollments.length} current student{t.enrollments.length === 1 ? "" : "s"}</span>
+              <span className="text-stone-500">
+                {t.assignments.length
+                  ? `Teaches: ${[...new Set(t.assignments.map((a) => a.course.title))].join(", ")}`
+                  : "Not assigned to any tutorial"}
+              </span>
               <form action={toggleTutor}>
                 <input type="hidden" name="id" value={t.id} />
                 <button className="text-xs font-semibold text-brand-700 hover:underline">{t.active ? "Deactivate" : "Activate"}</button>
