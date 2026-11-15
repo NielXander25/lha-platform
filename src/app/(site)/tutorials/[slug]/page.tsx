@@ -67,7 +67,7 @@ export default async function CoursePage({ params }: { params: Params }) {
           <h2 className="mt-10 text-lg font-semibold text-stone-900">Tutors & locations</h2>
           {course.assignments.length === 0 ? (
             <p className="mt-3 rounded-2xl border border-dashed border-stone-300 p-6 text-sm text-stone-500">
-              Tutors and locations for this tutorial will be announced soon. Contact us to register your interest.
+              Tutors and locations for this tutorial will be announced soon. Contact us for details.
             </p>
           ) : (
             <ul className="mt-4 grid gap-4 sm:grid-cols-2">

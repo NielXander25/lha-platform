@@ -33,7 +33,7 @@ const values = [
   {
     icon: MapPin,
     title: "Learn where it suits you",
-    body: "Join us at a learning centre, have a tutor come to your home, or learn live online from anywhere.",
+    body: "Learn at one of our learning centres, have a tutor come to your home, or learn live online from anywhere.",
   },
   {
     icon: Users,

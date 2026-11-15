@@ -63,7 +63,7 @@ export default async function TutorialsPage({ searchParams }: { searchParams: Se
         </h1>
         <p className="mt-4 text-stone-600">
           Clear prices, no hidden fees. See who teaches each tutorial and where it takes place, then
-          get in touch to join.
+          contact us with any questions.
         </p>
       </header>
 
