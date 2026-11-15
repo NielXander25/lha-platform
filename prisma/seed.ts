@@ -1,5 +1,5 @@
 // Starter data for Learning Hub Africa (AFIT tutorials).
-// Course titles, descriptions, prices, tutors and schedules are placeholders:
+// Course titles, descriptions, tutors and schedules are placeholders:
 // edit them in the admin area or here.
 import { PrismaClient } from "@prisma/client";
 
@@ -9,7 +9,6 @@ const course = (
   code: string,
   title: string,
   category: string,
-  price: number,
   summary: string,
   description: string,
 ) => ({
@@ -18,8 +17,6 @@ const course = (
   title,
   category,
   level: "100 Level",
-  price,
-  billingUnit: "semester",
   summary,
   description,
   sessionsPerWeek: 2,
@@ -27,21 +24,27 @@ const course = (
 });
 
 const courses = [
-  course("MTH 101", "Elementary Mathematics I", "Mathematics", 15000,
+  course("MTH 101", "Elementary Mathematics I", "Mathematics",
     "Sets, real numbers, indices, logarithms, quadratics, sequences and series, and trigonometry.",
     "Step-by-step tutorials through the MTH 101 course outline, with worked examples, practice questions and past-question sessions before tests and exams."),
-  course("MTH 103", "Elementary Mathematics III", "Mathematics", 15000,
+  course("MTH 103", "Elementary Mathematics III", "Mathematics",
     "Vectors, coordinate geometry and other MTH 103 topics.",
     "Clear explanations of every MTH 103 topic, plenty of practice problems and revision sessions ahead of tests and exams."),
-  course("PHY 101", "General Physics I", "Physics", 15000,
+  course("PHY 101", "General Physics I", "Physics",
     "Mechanics: units, motion, Newton's laws, work, energy and properties of matter.",
     "Concept-first tutorials with lots of calculation practice, so you can tackle both theory and problem questions in PHY 101 with confidence."),
-  course("PHY 107", "General Physics Practical I", "Physics", 12000,
+  course("PHY 107", "General Physics Practical I", "Physics",
     "Experiments, measurements, error analysis, graphs and writing up practical reports.",
     "Get comfortable with the PHY 107 experiments: what to measure, how to plot and analyse results, and how to write reports that score well."),
-  course("CHM 101", "General Chemistry I", "Chemistry", 15000,
+  course("CHM 101", "General Chemistry I", "Chemistry",
     "Atomic structure, chemical bonding, stoichiometry and the periodic table.",
     "Simplified notes, worked calculations and past questions covering the CHM 101 course outline."),
+];
+
+const tiers = [
+  { name: "General class", ratio: "Group : 1 tutor", description: "Join the general class and learn alongside other students with one tutor.", price: 5000, sortOrder: 1 },
+  { name: "Two-to-one", ratio: "2 students : 1 tutor", description: "You and one other student share a tutor for closer attention.", price: 7000, sortOrder: 2 },
+  { name: "One-on-one", ratio: "1 student : 1 tutor", description: "Private tutorials: just you and the tutor, at your pace.", price: 10000, sortOrder: 3 },
 ];
 
 const departments = [
@@ -81,6 +84,7 @@ async function main() {
     console.log("Database already has data. Run `npm run db:reset` to replace it with the starter data.");
     return;
   }
+  await prisma.pricingTier.createMany({ data: tiers });
   await prisma.department.createMany({ data: departments.map((name) => ({ name })) });
   // The 100 Level courses are general courses taken by every department.
   const allDepartments = (await prisma.department.findMany({ select: { id: true } })).map(({ id }) => ({ id }));

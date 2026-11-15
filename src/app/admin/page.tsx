@@ -4,7 +4,7 @@ import { Trash2 } from "lucide-react";
 import { createAssignment, deleteAssignment, updateAssignmentSchedule } from "./actions";
 import { Card, ErrorBanner, PageHeader, SubmitButton, firstString, inputClass } from "@/components/admin-ui";
 import { prisma } from "@/lib/prisma";
-import { cn, formatPrice } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 
 type SearchParams = Promise<{ [key: string]: string | string[] | undefined }>;
 
@@ -51,7 +51,7 @@ export default async function AssignmentsPage({ searchParams }: { searchParams: 
                   {c.code ? `${c.code}: ` : ""}{c.title}
                 </Link>
                 <p className="text-sm text-stone-500">
-                  {c.category} · {c.level} · {formatPrice(c.price)}/{c.billingUnit}
+                  {c.category} · {c.level}
                   {!c.active && " · hidden from visitors"}
                 </p>
               </div>

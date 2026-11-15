@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { CourseCard } from "@/components/course-card";
-import { LEVELS, shortDepartment } from "@/lib/constants";
+import { LEVELS, PRICE_UNIT, shortDepartment } from "@/lib/constants";
 import { prisma } from "@/lib/prisma";
-import { cn } from "@/lib/utils";
+import { cn, formatPrice } from "@/lib/utils";
 
 export const metadata: Metadata = {
   title: "Tutorials & pricing",
@@ -22,7 +22,7 @@ export default async function TutorialsPage({ searchParams }: { searchParams: Se
 
   const visibleAssignments = { tutor: { active: true }, location: { active: true } };
 
-  const [courses, departments, locations] = await Promise.all([
+  const [courses, departments, locations, tiers] = await Promise.all([
     prisma.course.findMany({
       where: {
         active: true,
@@ -42,7 +42,9 @@ export default async function TutorialsPage({ searchParams }: { searchParams: Se
       select: { name: true },
       orderBy: [{ kind: "desc" }, { name: "asc" }],
     }),
+    prisma.pricingTier.findMany({ orderBy: [{ sortOrder: "asc" }, { price: "asc" }] }),
   ]);
+  const fromPrice = tiers.length ? Math.min(...tiers.map((t) => t.price)) : undefined;
 
   const selected = { department, level, venue };
   const hrefWith = (key: keyof typeof selected, value?: string) => {
@@ -65,7 +67,22 @@ export default async function TutorialsPage({ searchParams }: { searchParams: Se
         </p>
       </header>
 
-      <div className="mt-10 space-y-3">
+      {tiers.length > 0 && (
+        <div className="mt-8 rounded-2xl border border-brand-200 bg-brand-50 p-5">
+          <p className="text-sm font-semibold text-brand-900">Pricing for every course ({PRICE_UNIT})</p>
+          <ul className="mt-3 grid gap-3 sm:grid-cols-3">
+            {tiers.map((t) => (
+              <li key={t.id} className="rounded-xl bg-white px-4 py-3">
+                <p className="font-display text-2xl font-semibold text-brand-800">{formatPrice(t.price)}</p>
+                <p className="text-sm font-semibold text-stone-800">{t.name}</p>
+                <p className="text-xs text-stone-500">{t.ratio}</p>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      <div className="mt-8 space-y-3">
         <FilterRow
           label="Department"
           items={departments.map((d) => d.name)}
@@ -91,6 +108,7 @@ export default async function TutorialsPage({ searchParams }: { searchParams: Se
             <CourseCard
               key={course.id}
               course={course}
+              fromPrice={fromPrice}
               places={[...new Set(course.assignments.map((a) => a.location.name))]}
               departments={
                 course.departments.length === departments.length

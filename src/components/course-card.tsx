@@ -7,10 +7,12 @@ export function CourseCard({
   course,
   places,
   departments,
+  fromPrice,
 }: {
   course: Course;
   places: string[];
   departments: string;
+  fromPrice?: number;
 }) {
   return (
     <Link
@@ -42,10 +44,12 @@ export function CourseCard({
       </div>
       <div className="mt-5 flex items-end justify-between border-t border-stone-100 pt-5">
         <p>
-          <span className="font-display text-2xl font-semibold text-stone-900">
-            {formatPrice(course.price)}
-          </span>
-          <span className="text-sm text-stone-500"> / {course.billingUnit}</span>
+          {fromPrice != null && (
+            <>
+              <span className="text-sm text-stone-500">From </span>
+              <span className="font-display text-2xl font-semibold text-stone-900">{formatPrice(fromPrice)}</span>
+            </>
+          )}
         </p>
         <span className="flex items-center gap-1 text-sm font-semibold text-brand-700">
           Details <ArrowRight className="size-4 transition group-hover:translate-x-0.5" />

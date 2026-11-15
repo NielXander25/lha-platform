@@ -80,8 +80,6 @@ const CourseSchema = z.object({
   level: z.enum(LEVELS),
   summary: z.string().trim().min(5),
   description: z.string().trim().min(5),
-  price: z.coerce.number().int().nonnegative(),
-  billingUnit: z.string().trim().min(2).default("semester"),
   sessionsPerWeek: z.coerce.number().int().min(1).max(14),
   sessionLengthMins: z.coerce.number().int().min(15).max(480),
 });
@@ -124,23 +122,6 @@ export async function updateCourseAudience(formData: FormData) {
   revalidatePath(`/tutorials/${course.slug}`);
 }
 
-const CoursePriceSchema = z.object({
-  id: z.string().min(1),
-  price: z.coerce.number().int().nonnegative(),
-  billingUnit: z.string().trim().min(2),
-});
-
-export async function updateCoursePrice(formData: FormData) {
-  await requireAdmin();
-  const parsed = CoursePriceSchema.safeParse(form(formData));
-  if (!parsed.success) fail("/admin/courses", "Price must be a whole number.");
-  const { id, ...data } = parsed.data;
-  const course = await prisma.course.update({ where: { id }, data });
-  revalidatePath("/admin/courses");
-  revalidatePath("/tutorials");
-  revalidatePath(`/tutorials/${course.slug}`);
-}
-
 export async function toggleCourse(formData: FormData) {
   await requireAdmin();
   const id = String(formData.get("id") ?? "");
@@ -149,6 +130,25 @@ export async function toggleCourse(formData: FormData) {
   revalidatePath("/admin/courses");
   revalidatePath("/tutorials");
   revalidatePath(`/tutorials/${course.slug}`);
+}
+
+/* ---------- Pricing tiers ---------- */
+
+const TierSchema = z.object({
+  id: z.string().min(1),
+  name: z.string().trim().min(2),
+  ratio: z.string().trim().min(2),
+  description: z.string().trim().min(2),
+  price: z.coerce.number().int().nonnegative(),
+});
+
+export async function updateTier(formData: FormData) {
+  await requireAdmin();
+  const parsed = TierSchema.safeParse(form(formData));
+  if (!parsed.success) fail("/admin/pricing", "Fill in every field; the price must be a whole number.");
+  const { id, ...data } = parsed.data;
+  await prisma.pricingTier.update({ where: { id }, data });
+  revalidatePath("/", "layout");
 }
 
 /* ---------- Departments ---------- */

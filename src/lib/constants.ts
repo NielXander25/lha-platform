@@ -14,6 +14,9 @@ export function whatsappLink(message?: string) {
   return `https://wa.me/${SITE.whatsapp}${text}`;
 }
 
+// What the tier prices are charged for.
+export const PRICE_UNIT = "per course";
+
 export const LEVELS = ["100 Level", "200 Level", "300 Level", "400 Level", "500 Level"] as const;
 
 // "Mechatronics Engineering" -> "Mechatronics" for compact labels.

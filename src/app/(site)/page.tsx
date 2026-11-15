@@ -12,14 +12,16 @@ import {
   Target,
   Users,
 } from "lucide-react";
-import { LEVELS } from "@/lib/constants";
+import { PricingCards } from "@/components/pricing-tiers";
+import { LEVELS, PRICE_UNIT } from "@/lib/constants";
 import { prisma } from "@/lib/prisma";
+import { formatPrice } from "@/lib/utils";
 
 const stats = [
   { value: "100–500", label: "Level courses, by course code" },
   { value: "Engineering", label: "Every AFIT engineering department" },
   { value: "On campus", label: "Lecture rooms and halls you know" },
-  { value: "Small groups", label: "So every question gets answered" },
+  { value: "3 options", label: "General class, 2-to-1 or 1-on-1" },
 ];
 
 const values = [
@@ -40,8 +42,8 @@ const values = [
   },
   {
     icon: Users,
-    title: "Small, focused groups",
-    body: "Small classes mean you can ask questions, get them answered and actually understand the work.",
+    title: "Choose your class size",
+    body: "Join the general class, share a tutor with one other student, or go one-on-one.",
   },
 ];
 
@@ -70,11 +72,11 @@ const steps = [
 
 export default async function HomePage() {
   await connection();
-  const departments = await prisma.department.findMany({
-    where: { active: true },
-    select: { name: true },
-    orderBy: { name: "asc" },
-  });
+  const [departments, tiers] = await Promise.all([
+    prisma.department.findMany({ where: { active: true }, select: { name: true }, orderBy: { name: "asc" } }),
+    prisma.pricingTier.findMany({ orderBy: [{ sortOrder: "asc" }, { price: "asc" }] }),
+  ]);
+  const fromPrice = tiers.length ? Math.min(...tiers.map((t) => t.price)) : null;
 
   return (
     <>
@@ -155,10 +157,12 @@ export default async function HomePage() {
               </div>
               <div className="mt-6 flex items-end justify-between rounded-2xl bg-brand-50 p-4">
                 <span className="text-sm font-medium text-brand-900">Price</span>
-                <span>
-                  <span className="font-display text-2xl font-semibold text-brand-800">₦15,000</span>
-                  <span className="text-sm text-brand-900/70"> / semester</span>
-                </span>
+                {fromPrice != null && (
+                  <span>
+                    <span className="text-sm text-brand-900/70">from </span>
+                    <span className="font-display text-2xl font-semibold text-brand-800">{formatPrice(fromPrice)}</span>
+                  </span>
+                )}
               </div>
             </div>
             <div className="absolute -bottom-14 left-8 hidden items-center gap-3 rounded-2xl border border-stone-200 bg-white px-4 py-3 shadow-lg sm:flex">
@@ -252,6 +256,20 @@ export default async function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* Pricing */}
+      {tiers.length > 0 && (
+        <section id="pricing" className="mx-auto max-w-6xl scroll-mt-20 px-4 py-20 sm:px-6">
+          <p className="text-sm font-semibold uppercase tracking-wider text-sun-600">Pricing</p>
+          <h2 className="mt-3 max-w-2xl font-display text-3xl font-semibold tracking-tight text-brand-950 sm:text-4xl">
+            Three ways to learn. You choose.
+          </h2>
+          <p className="mb-10 mt-4 max-w-2xl text-stone-600">
+            The same prices apply to every course, {PRICE_UNIT}. Pick the class size that suits you.
+          </p>
+          <PricingCards tiers={tiers} />
+        </section>
+      )}
 
       {/* How it works */}
       <section id="how-it-works" className="scroll-mt-16 bg-brand-900 text-white">

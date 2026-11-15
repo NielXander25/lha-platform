@@ -3,9 +3,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { ArrowLeft, CalendarDays, Check, Clock, Mail, MapPin, MessageCircle, Phone } from "lucide-react";
-import { SITE, whatsappLink } from "@/lib/constants";
+import { PricingList } from "@/components/pricing-tiers";
+import { PRICE_UNIT, SITE, whatsappLink } from "@/lib/constants";
 import { prisma } from "@/lib/prisma";
-import { formatPrice } from "@/lib/utils";
 
 type Params = Promise<{ slug: string }>;
 
@@ -32,7 +32,10 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
 
 export default async function CoursePage({ params }: { params: Params }) {
   await connection();
-  const course = await getCourse((await params).slug);
+  const [course, tiers] = await Promise.all([
+    getCourse((await params).slug),
+    prisma.pricingTier.findMany({ orderBy: [{ sortOrder: "asc" }, { price: "asc" }] }),
+  ]);
   if (!course) notFound();
 
   const included = [
@@ -133,12 +136,9 @@ export default async function CoursePage({ params }: { params: Params }) {
 
         <aside className="lg:sticky lg:top-24 lg:self-start">
           <div className="rounded-3xl border border-stone-200 bg-white p-6 shadow-xl shadow-stone-900/5">
-            <p className="text-sm font-medium text-stone-500">Price</p>
-            <p className="mt-1">
-              <span className="font-display text-4xl font-semibold text-stone-900">{formatPrice(course.price)}</span>
-              <span className="text-stone-500"> / {course.billingUnit}</span>
-            </p>
-            <hr className="my-6 border-stone-100" />
+            <p className="text-sm font-medium text-stone-500">Price {PRICE_UNIT}</p>
+            <PricingList tiers={tiers} />
+            <hr className="mb-6 mt-2 border-stone-100" />
             <h2 className="font-semibold text-stone-900">Interested in this tutorial?</h2>
             <p className="mt-1 text-sm text-stone-500">Reach out and we&apos;ll answer your questions and help you get started.</p>
             <div className="mt-5 space-y-3">

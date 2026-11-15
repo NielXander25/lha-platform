@@ -1,13 +1,15 @@
 // Learning Hub Africa data model: tutorials for Air Force Institute of Technology (AFIT) students.
-// SQLite for local development; switch `provider` to "postgresql" for production.
+// PostgreSQL (Neon in production). DATABASE_URL is the pooled connection used by the
+// app; DIRECT_URL is a direct connection used for migrations.
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 // A university course tutorial students can pay for, e.g. "MTH 101 – Elementary Mathematics I".
@@ -21,8 +23,6 @@ model Course {
   departments Department[] // departments whose students take this course
   summary     String
   description String
-  price       Int          // whole currency units (NGN)
-  billingUnit String       @default("semester") // price is charged per this unit
   sessionsPerWeek Int      @default(2)
   sessionLengthMins Int    @default(60)
   active      Boolean      @default(true)
@@ -38,6 +38,17 @@ model Department {
   active    Boolean  @default(true)
   createdAt DateTime @default(now())
   courses   Course[]
+}
+
+// A pricing option that applies to every course, e.g. "One-on-one" at 10,000.
+model PricingTier {
+  id          String   @id @default(cuid())
+  name        String
+  ratio       String   // short label, e.g. "1 student : 1 tutor"
+  description String
+  price       Int      // whole Naira
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
 }
 
 model Tutor {

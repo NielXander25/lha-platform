@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { connection } from "next/server";
-import { createCourse, toggleCourse, updateCourseAudience, updateCoursePrice } from "../actions";
+import { createCourse, toggleCourse, updateCourseAudience } from "../actions";
 import { ActiveBadge, Card, ErrorBanner, Field, PageHeader, SubmitButton, firstString, inputClass } from "@/components/admin-ui";
 import { LEVELS, shortDepartment } from "@/lib/constants";
 import { prisma } from "@/lib/prisma";
@@ -21,7 +21,7 @@ export default async function AdminCoursesPage({ searchParams }: { searchParams:
 
   return (
     <div>
-      <PageHeader title="Courses & prices" description="Set each course's price, level and the departments that take it." />
+      <PageHeader title="Courses" description="Set each course's level and the departments that take it. Prices are set once for all courses under Pricing." />
       <ErrorBanner message={firstString(params.error)} />
 
       <div className="space-y-4">
@@ -46,17 +46,6 @@ export default async function AdminCoursesPage({ searchParams }: { searchParams:
               </div>
 
               <div className="mt-4 space-y-5 border-t border-stone-100 pt-4">
-                <form action={updateCoursePrice} className="flex flex-wrap items-end gap-2">
-                  <input type="hidden" name="id" value={c.id} />
-                  <Field label="Price (NGN)">
-                    <input name="price" type="number" min={0} step={500} defaultValue={c.price} className={cn(inputClass, "w-32")} />
-                  </Field>
-                  <Field label="Per">
-                    <input name="billingUnit" defaultValue={c.billingUnit} className={cn(inputClass, "w-32")} />
-                  </Field>
-                  <SubmitButton variant="ghost">Save price</SubmitButton>
-                </form>
-
                 <form key={`${c.level}:${[...linked].sort().join(",")}`} action={updateCourseAudience} className="space-y-3">
                   <input type="hidden" name="id" value={c.id} />
                   <p className="text-xs font-semibold uppercase tracking-wide text-stone-500">Departments that take this course</p>
@@ -87,8 +76,6 @@ export default async function AdminCoursesPage({ searchParams }: { searchParams:
               {LEVELS.map((l) => <option key={l}>{l}</option>)}
             </select>
           </Field>
-          <Field label="Price (NGN)"><input name="price" type="number" min={0} step={500} required className={inputClass} /></Field>
-          <Field label="Charged per"><input name="billingUnit" defaultValue="semester" required className={inputClass} /></Field>
           <Field label="Sessions / week"><input name="sessionsPerWeek" type="number" min={1} max={14} defaultValue={2} required className={inputClass} /></Field>
           <Field label="Session length (mins)"><input name="sessionLengthMins" type="number" min={15} step={15} defaultValue={120} required className={inputClass} /></Field>
           <div className="sm:col-span-2 lg:col-span-4">
