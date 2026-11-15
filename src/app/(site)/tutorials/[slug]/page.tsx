@@ -49,7 +49,7 @@ export default async function CoursePage({ params }: { params: Params }) {
   const enquiry = `Hello Learning Hub Africa, I'm interested in the ${name} tutorial.`;
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
+    <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-12">
       <Link href="/tutorials" className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-500 hover:text-brand-700">
         <ArrowLeft className="size-4" /> All tutorials
       </Link>
@@ -61,7 +61,7 @@ export default async function CoursePage({ params }: { params: Params }) {
             <span className="rounded-full bg-slate-100 px-2.5 py-1 text-slate-600">{course.level}</span>
           </div>
           {course.code && <p className="mt-4 text-lg font-bold tracking-wide text-accent-600">{course.code}</p>}
-          <h1 className="mt-1 font-display text-4xl font-semibold tracking-tight text-brand-950">{course.title}</h1>
+          <h1 className="mt-1 font-display text-3xl font-semibold sm:text-4xl tracking-tight text-brand-950">{course.title}</h1>
           <p className="mt-4 text-lg text-slate-600">{course.summary}</p>
 
           <div className="mt-8 grid gap-4 sm:grid-cols-3">
@@ -135,7 +135,7 @@ export default async function CoursePage({ params }: { params: Params }) {
         </div>
 
         <aside className="lg:sticky lg:top-24 lg:self-start">
-          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xl shadow-slate-900/5">
+          <div className="rounded-3xl border border-slate-200 bg-white p-4 shadow-xl shadow-slate-900/5 sm:p-6">
             <h2 className="font-semibold text-slate-900">Choose your class size</h2>
             <p className="mb-4 mt-1 text-sm text-slate-500">Prices are {PRICE_UNIT}. Pick an option to pay.</p>
             <PricingOptions tiers={tiers} href={(t) => `/checkout?course=${course.slug}&tier=${t.id}`} />
@@ -147,7 +147,7 @@ export default async function CoursePage({ params }: { params: Params }) {
                 href={whatsappLink(enquiry)}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex w-full items-center justify-center gap-2 rounded-full border border-slate-300 px-6 py-3 font-semibold text-slate-800 transition hover:bg-slate-50"
+                className="flex w-full items-center justify-center gap-2 rounded-full border border-slate-300 px-4 py-3 font-semibold text-slate-800 transition hover:bg-slate-50"
               >
                 <MessageCircle className="size-5" /> Chat on WhatsApp
               </a>

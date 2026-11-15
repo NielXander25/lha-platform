@@ -27,7 +27,7 @@ export function PricingCards({
             key={tier.id}
             href={href(tier)}
             className={cn(
-              "group flex flex-col rounded-3xl border p-7 transition hover:-translate-y-1 hover:shadow-xl hover:shadow-slate-900/10",
+              "group flex flex-col rounded-3xl border p-6 transition sm:p-7 hover:-translate-y-1 hover:shadow-xl hover:shadow-slate-900/10",
               featured
                 ? "border-brand-600 bg-brand-900 text-white"
                 : "border-slate-200 bg-white hover:border-brand-300",
@@ -40,7 +40,7 @@ export function PricingCards({
               {tier.description}
             </p>
             <p className="mt-6">
-              <span className="font-display text-4xl font-semibold">{formatPrice(tier.price)}</span>
+              <span className="font-display text-3xl font-semibold sm:text-4xl">{formatPrice(tier.price)}</span>
               <span className={cn("text-sm", featured ? "text-brand-100/70" : "text-slate-500")}> {PRICE_UNIT}</span>
             </p>
             <span
@@ -68,15 +68,15 @@ export function PricingOptions({ tiers, href }: { tiers: PricingTier[]; href: (t
           <li key={tier.id}>
             <Link
               href={href(tier)}
-              className="group flex items-center gap-4 rounded-2xl border border-slate-200 p-4 transition hover:border-brand-500 hover:bg-brand-50"
+              className="group flex items-center gap-3 rounded-2xl border border-slate-200 p-3.5 transition sm:gap-4 sm:p-4 hover:border-brand-500 hover:bg-brand-50"
             >
-              <Icon className="size-10 shrink-0 rounded-xl bg-brand-50 p-2 text-brand-600 group-hover:bg-white" />
-              <span className="min-w-0 flex-1">
+              <Icon className="hidden size-10 shrink-0 rounded-xl bg-brand-50 p-2 text-brand-600 group-hover:bg-white min-[400px]:block" />
+              <span className="min-w-0 flex-1 [overflow-wrap:normal]">
                 <span className="block font-semibold text-slate-900">{tier.name}</span>
                 <span className="block text-sm text-slate-500">{tier.ratio}</span>
               </span>
-              <span className="text-right">
-                <span className="block font-display text-2xl font-semibold text-slate-900">{formatPrice(tier.price)}</span>
+              <span className="shrink-0 text-right">
+                <span className="block whitespace-nowrap font-display text-xl font-semibold text-slate-900 sm:text-2xl">{formatPrice(tier.price)}</span>
                 <span className="flex items-center justify-end gap-1 text-xs font-semibold text-brand-700">
                   Pay <ArrowRight className="size-3.5 transition group-hover:translate-x-0.5" />
                 </span>

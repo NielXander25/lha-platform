@@ -55,10 +55,10 @@ export default async function TutorialsPage({ searchParams }: { searchParams: Se
   };
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-14 sm:px-6">
+    <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6 sm:py-14">
       <header className="max-w-2xl">
         <p className="text-sm font-semibold uppercase tracking-wider text-accent-600">Tutorials</p>
-        <h1 className="mt-2 font-display text-4xl font-semibold tracking-tight text-brand-950">
+        <h1 className="mt-2 font-display text-3xl font-semibold sm:text-4xl tracking-tight text-brand-950">
           AFIT course tutorials
         </h1>
         <p className="mt-4 text-slate-600">
@@ -141,7 +141,7 @@ function FilterRow({
   const off = "border-slate-200 bg-white text-slate-600 hover:border-brand-300";
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <span className="w-24 text-sm font-semibold text-slate-500">{label}</span>
+      <span className="w-full text-sm font-semibold text-slate-500 sm:w-24">{label}</span>
       <Link href={href(undefined)} className={cn(pill, !active ? on : off)}>
         All
       </Link>
