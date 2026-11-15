@@ -13,45 +13,45 @@ import {
 } from "lucide-react";
 
 const stats = [
-  { value: "10+", label: "Subjects & exam tracks" },
-  { value: "3", label: "Ways to learn: centre, home, online" },
-  { value: "1:1", label: "Or small groups, your choice" },
-  { value: "Weekly", label: "Progress updates for parents" },
+  { value: "By course code", label: "Tutorials follow your course outline" },
+  { value: "Per course", label: "Clear prices per semester" },
+  { value: "Near campus", label: "Study centres, or join online" },
+  { value: "Small groups", label: "So every question gets answered" },
 ];
 
 const values = [
   {
     icon: BadgeCheck,
-    title: "Vetted tutors",
-    body: "Every tutor is interviewed, subject-tested and background-checked before they teach a single lesson.",
+    title: "Tutors who know the course",
+    body: "Our tutors are top graduates and postgraduates who have mastered the courses they teach.",
   },
   {
     icon: Target,
-    title: "Results-focused",
-    body: "Lessons are built around each student's goals, from closing gaps to acing WAEC, NECO and JAMB.",
+    title: "Built around your exams",
+    body: "Tutorials follow your course outline, with past questions and test practice before every exam.",
   },
   {
     icon: MapPin,
-    title: "Learn where it suits you",
-    body: "Learn at one of our learning centres, have a tutor come to your home, or learn live online from anywhere.",
+    title: "Near campus or online",
+    body: "Attend at a study centre close to your university, or join live online from your hostel.",
   },
   {
     icon: Users,
-    title: "Parents in the loop",
-    body: "Regular progress reports mean families always know how their child is doing and what's next.",
+    title: "Small, focused groups",
+    body: "Small classes mean you can ask questions, get them answered and actually understand the work.",
   },
 ];
 
 const steps = [
   {
     icon: Search,
-    title: "Choose a tutorial",
-    body: "Browse our courses and see clear prices up front, with no hidden fees.",
+    title: "Find your course",
+    body: "Search by faculty and level to find the course you need help with, with prices up front.",
   },
   {
     icon: GraduationCap,
     title: "Meet the tutor",
-    body: "Every tutorial shows who teaches it, where it holds and when.",
+    body: "Each course page shows who teaches it, where the tutorials hold and when.",
   },
   {
     icon: CalendarCheck,
@@ -61,7 +61,7 @@ const steps = [
   {
     icon: BookOpen,
     title: "Start learning",
-    body: "Lessons begin, and you get progress updates along the way.",
+    body: "Attend your tutorials and walk into your exams prepared.",
   },
 ];
 
@@ -81,12 +81,12 @@ export default function HomePage() {
         <div className="relative mx-auto grid max-w-6xl items-center gap-12 px-4 py-20 sm:px-6 md:py-28 lg:grid-cols-[1.15fr_1fr]">
           <div>
             <p className="mb-4 inline-flex items-center gap-2 rounded-full border border-brand-200 bg-white px-3 py-1 text-xs font-semibold uppercase tracking-wider text-brand-700">
-              Tutoring across Africa
+              University tutorials
             </p>
             <h1 className="font-display text-4xl font-semibold leading-[1.05] tracking-tight text-brand-950 sm:text-5xl lg:text-6xl">
-              Every learner deserves a tutor who{" "}
+              Pass your courses with a tutor who{" "}
               <span className="relative whitespace-nowrap text-brand-600">
-                believes in them
+                gets it
                 <svg
                   aria-hidden
                   viewBox="0 0 300 12"
@@ -99,9 +99,9 @@ export default function HomePage() {
               .
             </h1>
             <p className="mt-6 max-w-xl text-lg leading-relaxed text-stone-600">
-              Learning Hub Africa offers paid, personalised tutorials for primary, secondary and
-              exam-prep students, taught by vetted tutors at learning centres across Africa, at
-              home, and online.
+              Learning Hub Africa offers paid tutorials for university courses, from MTH 101 to
+              Circuit Theory. Our tutors explain the hard parts clearly and prepare you for tests
+              and exams, at study centres near campus or online.
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-3">
               <Link
@@ -129,24 +129,25 @@ export default function HomePage() {
                 </span>
               </div>
               <p className="mt-4 font-display text-2xl font-semibold text-brand-950">
-                Senior Secondary Mathematics
+                <span className="block text-sm font-bold tracking-wide text-sun-600">MTH 101</span>
+                Elementary Mathematics I
               </p>
               <div className="mt-5 space-y-3 text-sm text-stone-600">
                 <p className="flex items-center gap-3">
                   <GraduationCap className="size-4 text-brand-600" /> Tutor: Adaeze O.
                 </p>
                 <p className="flex items-center gap-3">
-                  <MapPin className="size-4 text-brand-600" /> Lekki Learning Centre, Lagos
+                  <MapPin className="size-4 text-brand-600" /> Akoka Study Centre, Lagos
                 </p>
                 <p className="flex items-center gap-3">
-                  <CalendarCheck className="size-4 text-brand-600" /> Tue & Thu · 4:00 pm
+                  <CalendarCheck className="size-4 text-brand-600" /> Tue & Thu, 4:00 pm
                 </p>
               </div>
               <div className="mt-6 flex items-end justify-between rounded-2xl bg-brand-50 p-4">
                 <span className="text-sm font-medium text-brand-900">Price</span>
                 <span>
-                  <span className="font-display text-2xl font-semibold text-brand-800">₦40,000</span>
-                  <span className="text-sm text-brand-900/70"> / month</span>
+                  <span className="font-display text-2xl font-semibold text-brand-800">₦35,000</span>
+                  <span className="text-sm text-brand-900/70"> / semester</span>
                 </span>
               </div>
             </div>
@@ -179,17 +180,17 @@ export default function HomePage() {
           <div>
             <p className="text-sm font-semibold uppercase tracking-wider text-sun-600">About us</p>
             <h2 className="mt-3 font-display text-3xl font-semibold tracking-tight text-brand-950 sm:text-4xl">
-              Unlocking potential, one learner at a time.
+              Helping university students learn, not just cram.
             </h2>
             <p className="mt-5 leading-relaxed text-stone-600">
               Learning Hub Africa was founded on a simple idea: with the right guidance, every
-              student can thrive. We bring together passionate, qualified tutors and the students
-              who need them, and make the whole process simple, transparent and affordable for
-              families.
+              student can thrive. Large lecture halls leave many students behind, so we bring
+              together tutors who know each course inside out and the students who need them.
             </p>
             <p className="mt-4 leading-relaxed text-stone-600">
-              From early literacy and numeracy to university entrance exams, our tutorials are
-              structured, personal and measured by one thing: the progress our students make.
+              From first-year mathematics and sciences to engineering and management courses, our
+              tutorials are structured around your course outline and measured by one thing: how
+              well our students do.
             </p>
           </div>
           <div className="grid gap-5 sm:grid-cols-2">
@@ -233,11 +234,11 @@ export default function HomePage() {
           <div aria-hidden className="absolute -bottom-20 -left-10 size-56 rounded-full bg-sun-500/40" />
           <div className="relative">
             <h2 className="font-display text-3xl font-semibold tracking-tight text-brand-950 sm:text-4xl">
-              Ready to find the right tutorial?
+              Struggling with a course this semester?
             </h2>
             <p className="mx-auto mt-4 max-w-xl text-brand-950/80">
-              See every course we offer, compare prices, and find out who teaches it and where it
-              takes place.
+              See every course we offer, compare prices, and find out who teaches it and where the
+              tutorials hold.
             </p>
             <Link
               href="/tutorials"

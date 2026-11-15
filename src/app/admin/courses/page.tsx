@@ -10,7 +10,7 @@ export default async function AdminCoursesPage({ searchParams }: { searchParams:
   await connection();
   const params = await searchParams;
   const courses = await prisma.course.findMany({
-    orderBy: [{ category: "asc" }, { title: "asc" }],
+    orderBy: [{ level: "asc" }, { code: "asc" }, { title: "asc" }],
     include: { _count: { select: { assignments: true } } },
   });
 
@@ -33,7 +33,7 @@ export default async function AdminCoursesPage({ searchParams }: { searchParams:
             {courses.map((c) => (
               <tr key={c.id}>
                 <td className="px-4 py-3">
-                  <Link href={`/tutorials/${c.slug}`} className="font-medium text-stone-900 hover:text-brand-700">{c.title}</Link>
+                  <Link href={`/tutorials/${c.slug}`} className="font-medium text-stone-900 hover:text-brand-700">{c.code ? `${c.code}: ` : ""}{c.title}</Link>
                   <p className="text-xs text-stone-500">{c.category} · {c.level}</p>
                 </td>
                 <td className="px-4 py-3 text-stone-600">{c._count.assignments}</td>
@@ -62,13 +62,14 @@ export default async function AdminCoursesPage({ searchParams }: { searchParams:
       <h2 className="mb-4 mt-10 text-lg font-semibold text-stone-900">Add a course</h2>
       <Card className="p-5">
         <form action={createCourse} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="sm:col-span-2"><Field label="Title"><input name="title" required className={inputClass} /></Field></div>
-          <Field label="Subject / category"><input name="category" required placeholder="e.g. Mathematics" className={inputClass} /></Field>
-          <Field label="Level"><input name="level" required placeholder="e.g. Senior Secondary" className={inputClass} /></Field>
+          <Field label="Course code"><input name="code" placeholder="e.g. MTH 101" className={inputClass} /></Field>
+          <div className="lg:col-span-3"><Field label="Course title"><input name="title" required placeholder="e.g. Elementary Mathematics I" className={inputClass} /></Field></div>
+          <Field label="Faculty"><input name="category" required placeholder="e.g. Sciences" className={inputClass} /></Field>
+          <Field label="Level"><input name="level" required placeholder="e.g. 100 Level" className={inputClass} /></Field>
           <Field label="Price (NGN)"><input name="price" type="number" min={0} step={500} required className={inputClass} /></Field>
-          <Field label="Charged per"><input name="billingUnit" defaultValue="month" required className={inputClass} /></Field>
+          <Field label="Charged per"><input name="billingUnit" defaultValue="semester" required className={inputClass} /></Field>
           <Field label="Sessions / week"><input name="sessionsPerWeek" type="number" min={1} max={14} defaultValue={2} required className={inputClass} /></Field>
-          <Field label="Session length (mins)"><input name="sessionLengthMins" type="number" min={15} step={15} defaultValue={60} required className={inputClass} /></Field>
+          <Field label="Session length (mins)"><input name="sessionLengthMins" type="number" min={15} step={15} defaultValue={120} required className={inputClass} /></Field>
           <div className="sm:col-span-2 lg:col-span-4"><Field label="Short summary"><input name="summary" required className={inputClass} /></Field></div>
           <div className="sm:col-span-2 lg:col-span-4"><Field label="Full description"><textarea name="description" rows={3} required className={inputClass} /></Field></div>
           <div><SubmitButton>Add course</SubmitButton></div>

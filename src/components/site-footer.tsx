@@ -9,8 +9,8 @@ export function SiteFooter() {
         <div className="space-y-3">
           <Logo light />
           <p className="max-w-xs text-sm text-brand-200/80">
-            Paid, results-focused tutorials with vetted tutors — at our learning centres, in your
-            home, or online.
+            Paid tutorials for university courses, with vetted tutors at study centres near campus
+            and online.
           </p>
         </div>
         <div className="space-y-2 text-sm">

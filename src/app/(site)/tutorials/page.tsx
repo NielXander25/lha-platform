@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = {
   title: "Tutorials & pricing",
-  description: "Browse Learning Hub Africa tutorials and see prices for every course.",
+  description: "Browse Learning Hub Africa university course tutorials and see prices for every course.",
 };
 
 type SearchParams = Promise<{ [key: string]: string | string[] | undefined }>;
@@ -30,7 +30,7 @@ export default async function TutorialsPage({ searchParams }: { searchParams: Se
       include: {
         assignments: { where: visibleAssignments, select: { location: { select: { city: true, isOnline: true } } } },
       },
-      orderBy: [{ price: "asc" }, { title: "asc" }],
+      orderBy: [{ level: "asc" }, { code: "asc" }, { title: "asc" }],
     }),
     prisma.course.findMany({ where: { active: true }, select: { category: true, level: true } }),
     prisma.location.findMany({
@@ -59,7 +59,7 @@ export default async function TutorialsPage({ searchParams }: { searchParams: Se
       <header className="max-w-2xl">
         <p className="text-sm font-semibold uppercase tracking-wider text-sun-600">Tutorials</p>
         <h1 className="mt-2 font-display text-4xl font-semibold tracking-tight text-brand-950">
-          Courses & pricing
+          University course tutorials
         </h1>
         <p className="mt-4 text-stone-600">
           Clear prices, no hidden fees. See who teaches each tutorial and where it takes place, then
@@ -68,7 +68,7 @@ export default async function TutorialsPage({ searchParams }: { searchParams: Se
       </header>
 
       <div className="mt-10 space-y-3">
-        <FilterRow label="Subject" items={categories} active={category} href={(v) => hrefWith("category", v)} />
+        <FilterRow label="Faculty" items={categories} active={category} href={(v) => hrefWith("category", v)} />
         <FilterRow label="Level" items={levels} active={level} href={(v) => hrefWith("level", v)} />
         <FilterRow label="Where" items={cities} active={city} href={(v) => hrefWith("city", v)} format={cityLabel} />
       </div>
@@ -111,7 +111,7 @@ function FilterRow({
   const pill = "rounded-full border px-3.5 py-1.5 text-sm font-medium transition";
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <span className="w-16 text-sm font-semibold text-stone-500">{label}</span>
+      <span className="w-20 text-sm font-semibold text-stone-500">{label}</span>
       <Link
         href={href(undefined)}
         className={cn(pill, !active ? "border-brand-600 bg-brand-600 text-white" : "border-stone-200 bg-white text-stone-600 hover:border-brand-300")}

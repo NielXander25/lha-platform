@@ -15,7 +15,7 @@ export default async function AdminLocationsPage({ searchParams }: { searchParam
 
   return (
     <div>
-      <PageHeader title="Locations" description="Learning centres, home-tutoring areas and online classes." />
+      <PageHeader title="Locations" description="Study centres near campuses, and online classes." />
       <ErrorBanner message={firstString(params.error)} />
 
       <Card className="divide-y divide-stone-100">
@@ -42,7 +42,7 @@ export default async function AdminLocationsPage({ searchParams }: { searchParam
       <h2 className="mb-4 mt-10 text-lg font-semibold text-stone-900">Add a location</h2>
       <Card className="p-5">
         <form action={createLocation} className="grid gap-4 sm:grid-cols-3">
-          <Field label="Name"><input name="name" required placeholder="e.g. Yaba Learning Centre" className={inputClass} /></Field>
+          <Field label="Name"><input name="name" required placeholder="e.g. Yaba Study Centre" className={inputClass} /></Field>
           <Field label="City"><input name="city" required className={inputClass} /></Field>
           <Field label="Address"><input name="address" className={inputClass} /></Field>
           <label className="flex items-center gap-2 text-sm text-stone-700">

@@ -24,7 +24,9 @@ async function getCourse(slug: string) {
 
 export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
   const course = await getCourse((await params).slug);
-  return course ? { title: course.title, description: course.summary } : {};
+  return course
+    ? { title: course.code ? `${course.code}: ${course.title}` : course.title, description: course.summary }
+    : {};
 }
 
 export default async function CoursePage({ params }: { params: Params }) {
@@ -34,11 +36,13 @@ export default async function CoursePage({ params }: { params: Params }) {
 
   const included = [
     `${course.sessionsPerWeek} sessions per week, ${course.sessionLengthMins} minutes each`,
-    "Taught by a vetted, subject-specialist tutor",
-    "Regular progress updates for parents",
+    "Taught by a vetted tutor who knows the course well",
+    "Simplified notes and worked examples",
+    "Past-question practice before tests and exams",
   ];
   const places = new Set(course.assignments.map((a) => a.location.id)).size;
-  const enquiry = `Hello Learning Hub Africa, I'm interested in the "${course.title}" tutorial.`;
+  const name = course.code ? `${course.code} (${course.title})` : course.title;
+  const enquiry = `Hello Learning Hub Africa, I'm interested in the ${name} tutorial.`;
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
@@ -52,7 +56,8 @@ export default async function CoursePage({ params }: { params: Params }) {
             <span className="rounded-full bg-brand-50 px-2.5 py-1 text-brand-700">{course.category}</span>
             <span className="rounded-full bg-stone-100 px-2.5 py-1 text-stone-600">{course.level}</span>
           </div>
-          <h1 className="mt-4 font-display text-4xl font-semibold tracking-tight text-brand-950">{course.title}</h1>
+          {course.code && <p className="mt-4 text-lg font-bold tracking-wide text-sun-600">{course.code}</p>}
+          <h1 className="mt-1 font-display text-4xl font-semibold tracking-tight text-brand-950">{course.title}</h1>
           <p className="mt-4 text-lg text-stone-600">{course.summary}</p>
 
           <div className="mt-8 grid gap-4 sm:grid-cols-3">
@@ -140,7 +145,7 @@ export default async function CoursePage({ params }: { params: Params }) {
                 <Phone className="size-4" /> {SITE.phone}
               </a>
               <a
-                href={`mailto:${SITE.email}?subject=${encodeURIComponent(`Enquiry: ${course.title}`)}`}
+                href={`mailto:${SITE.email}?subject=${encodeURIComponent(`Enquiry: ${name}`)}`}
                 className="flex w-full items-center justify-center gap-2 rounded-full border border-stone-300 px-6 py-3 font-semibold text-stone-800 transition hover:bg-stone-50"
               >
                 <Mail className="size-4" /> Email us

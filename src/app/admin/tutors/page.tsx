@@ -10,7 +10,7 @@ export default async function AdminTutorsPage({ searchParams }: { searchParams: 
   const params = await searchParams;
   const tutors = await prisma.tutor.findMany({
     orderBy: { name: "asc" },
-    include: { assignments: { select: { course: { select: { title: true } } } } },
+    include: { assignments: { select: { course: { select: { title: true, code: true } } } } },
   });
 
   return (
@@ -33,7 +33,7 @@ export default async function AdminTutorsPage({ searchParams }: { searchParams: 
             <div className="mt-4 flex items-center justify-between border-t border-stone-100 pt-3 text-sm">
               <span className="text-stone-500">
                 {t.assignments.length
-                  ? `Teaches: ${[...new Set(t.assignments.map((a) => a.course.title))].join(", ")}`
+                  ? `Teaches: ${[...new Set(t.assignments.map((a) => a.course.code ?? a.course.title))].join(", ")}`
                   : "Not assigned to any tutorial"}
               </span>
               <form action={toggleTutor}>

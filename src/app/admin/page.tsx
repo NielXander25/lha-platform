@@ -14,7 +14,7 @@ export default async function AssignmentsPage({ searchParams }: { searchParams: 
 
   const [courses, tutors, locations] = await Promise.all([
     prisma.course.findMany({
-      orderBy: [{ active: "desc" }, { category: "asc" }, { title: "asc" }],
+      orderBy: [{ active: "desc" }, { level: "asc" }, { code: "asc" }, { title: "asc" }],
       include: {
         assignments: {
           include: { tutor: true, location: true },
@@ -48,7 +48,7 @@ export default async function AssignmentsPage({ searchParams }: { searchParams: 
             <div className="flex flex-wrap items-start justify-between gap-2">
               <div>
                 <Link href={`/tutorials/${c.slug}`} className="font-semibold text-stone-900 hover:text-brand-700">
-                  {c.title}
+                  {c.code ? `${c.code}: ` : ""}{c.title}
                 </Link>
                 <p className="text-sm text-stone-500">
                   {c.category} · {c.level} · {formatPrice(c.price)}/{c.billingUnit}

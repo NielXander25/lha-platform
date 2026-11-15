@@ -10,17 +10,18 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// A tutorial offering students can pay for, e.g. "SSS Mathematics".
+// A university course tutorial students can pay for, e.g. "MTH 101 – Elementary Mathematics I".
 model Course {
   id          String       @id @default(cuid())
   slug        String       @unique
+  code        String?      // course code, e.g. "MTH 101"
   title       String
-  category    String       // e.g. Mathematics, Sciences, Languages, Exam Prep
-  level       String       // e.g. Primary, Junior Secondary, Senior Secondary, University
+  category    String       // faculty, e.g. Sciences, Engineering, Management Sciences
+  level       String       // e.g. 100 Level, 200 Level
   summary     String
   description String
   price       Int          // whole currency units (NGN)
-  billingUnit String       @default("month") // price is charged per this unit
+  billingUnit String       @default("semester") // price is charged per this unit
   sessionsPerWeek Int      @default(2)
   sessionLengthMins Int    @default(60)
   active      Boolean      @default(true)
@@ -41,7 +42,7 @@ model Tutor {
   assignments Assignment[]
 }
 
-// Where a tutorial takes place: a learning centre, a home-tutoring area, or online.
+// Where a tutorial takes place: a study centre near a campus, or online.
 model Location {
   id          String       @id @default(cuid())
   name        String

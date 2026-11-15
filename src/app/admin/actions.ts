@@ -68,13 +68,19 @@ export async function deleteAssignment(formData: FormData) {
 /* ---------- Courses ---------- */
 
 const CourseSchema = z.object({
+  code: z
+    .string()
+    .trim()
+    .toUpperCase()
+    .optional()
+    .transform((v) => v || null),
   title: z.string().trim().min(2),
   category: z.string().trim().min(2),
   level: z.string().trim().min(2),
   summary: z.string().trim().min(5),
   description: z.string().trim().min(5),
   price: z.coerce.number().int().nonnegative(),
-  billingUnit: z.string().trim().min(2).default("month"),
+  billingUnit: z.string().trim().min(2).default("semester"),
   sessionsPerWeek: z.coerce.number().int().min(1).max(14),
   sessionLengthMins: z.coerce.number().int().min(15).max(480),
 });
@@ -84,7 +90,7 @@ export async function createCourse(formData: FormData) {
   const parsed = CourseSchema.safeParse(form(formData));
   if (!parsed.success) fail("/admin/courses", "Please fill in every course field correctly.");
 
-  const base = slugify(parsed.data.title) || "course";
+  const base = slugify(parsed.data.code ?? parsed.data.title) || "course";
   let slug = base;
   for (let i = 2; await prisma.course.findUnique({ where: { slug } }); i++) slug = `${base}-${i}`;
 

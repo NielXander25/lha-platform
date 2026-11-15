@@ -1,9 +1,9 @@
 # Learning Hub Africa
 
-Website and admin tool for Learning Hub Africa's paid tutorials.
+Website and admin tool for Learning Hub Africa's paid university course tutorials.
 
 - **Public site** (no sign-up; students are visitors): home page about the organisation, a tutorials
-  catalogue with prices and subject/level/location filters (`/tutorials`), and a page per tutorial
+  catalogue (by course code, e.g. MTH 101) with per-semester prices and faculty/level/location filters (`/tutorials`), and a page per tutorial
   showing its tutors, locations and schedules, with WhatsApp/phone/email contact buttons.
 - **Admin** (`/admin`, password protected): assign tutors to tutorials along with a location (and an
   optional schedule), manage course prices, tutors and locations.
@@ -38,9 +38,9 @@ username and password: use any username and the `ADMIN_PASSWORD` from `.env`.
 
 ## Data model
 
-`Course` (with price) · `Tutor` · `Location` · `Assignment` (a tutor teaching a course at a location,
+`Course` (course code, faculty, level, price per semester) · `Tutor` · `Location` · `Assignment` (a tutor teaching a course at a location,
 with an optional schedule). A course can have several assignments, e.g. one tutor online and another at
-a learning centre.
+a study centre near campus.
 
 ## Before going live
 

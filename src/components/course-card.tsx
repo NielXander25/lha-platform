@@ -13,7 +13,8 @@ export function CourseCard({ course, places }: { course: Course; places: string[
         <span className="rounded-full bg-brand-50 px-2.5 py-1 text-brand-700">{course.category}</span>
         <span className="rounded-full bg-stone-100 px-2.5 py-1 text-stone-600">{course.level}</span>
       </div>
-      <h3 className="mt-4 font-display text-xl font-semibold text-brand-950">{course.title}</h3>
+      {course.code && <p className="mt-4 text-sm font-bold tracking-wide text-sun-600">{course.code}</p>}
+      <h3 className={`font-display text-xl font-semibold text-brand-950 ${course.code ? "mt-1" : "mt-4"}`}>{course.title}</h3>
       <p className="mt-2 flex-1 text-sm leading-relaxed text-stone-600">{course.summary}</p>
       <div className="mt-5 flex flex-wrap gap-x-4 gap-y-1.5 text-xs text-stone-500">
         <span className="flex items-center gap-1.5">
