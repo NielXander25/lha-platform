@@ -31,10 +31,10 @@ export default async function AdminCoursesPage({ searchParams }: { searchParams:
             <Card key={c.id} className="p-5">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <Link href={`/tutorials/${c.slug}`} className="font-semibold text-stone-900 hover:text-brand-700">
+                  <Link href={`/tutorials/${c.slug}`} className="font-semibold text-slate-900 hover:text-brand-700">
                     {c.code ? `${c.code}: ` : ""}{c.title}
                   </Link>
-                  <p className="text-sm text-stone-500">
+                  <p className="text-sm text-slate-500">
                     {c.category} · {c._count.assignments} tutor{c._count.assignments === 1 ? "" : "s"} assigned
                   </p>
                 </div>
@@ -45,10 +45,10 @@ export default async function AdminCoursesPage({ searchParams }: { searchParams:
                 </form>
               </div>
 
-              <div className="mt-4 space-y-5 border-t border-stone-100 pt-4">
+              <div className="mt-4 space-y-5 border-t border-slate-100 pt-4">
                 <form key={`${c.level}:${[...linked].sort().join(",")}`} action={updateCourseAudience} className="space-y-3">
                   <input type="hidden" name="id" value={c.id} />
-                  <p className="text-xs font-semibold uppercase tracking-wide text-stone-500">Departments that take this course</p>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Departments that take this course</p>
                   <DepartmentBoxes departments={departments} checked={(id) => linked.has(id)} />
                   <div className="flex flex-wrap items-end gap-2">
                     <Field label="Level">
@@ -65,7 +65,7 @@ export default async function AdminCoursesPage({ searchParams }: { searchParams:
         })}
       </div>
 
-      <h2 className="mb-4 mt-10 text-lg font-semibold text-stone-900">Add a course</h2>
+      <h2 className="mb-4 mt-10 text-lg font-semibold text-slate-900">Add a course</h2>
       <Card className="p-5">
         <form action={createCourse} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Field label="Course code"><input name="code" placeholder="e.g. EEE 201" className={inputClass} /></Field>
@@ -79,7 +79,7 @@ export default async function AdminCoursesPage({ searchParams }: { searchParams:
           <Field label="Sessions / week"><input name="sessionsPerWeek" type="number" min={1} max={14} defaultValue={2} required className={inputClass} /></Field>
           <Field label="Session length (mins)"><input name="sessionLengthMins" type="number" min={15} step={15} defaultValue={120} required className={inputClass} /></Field>
           <div className="sm:col-span-2 lg:col-span-4">
-            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-stone-500">Departments that take this course</p>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Departments that take this course</p>
             <DepartmentBoxes departments={departments} checked={() => false} />
           </div>
           <div className="sm:col-span-2 lg:col-span-4"><Field label="Short summary"><input name="summary" required className={inputClass} /></Field></div>
@@ -101,7 +101,7 @@ function DepartmentBoxes({
   return (
     <div className="flex flex-wrap gap-x-5 gap-y-2">
       {departments.map((d) => (
-        <label key={d.id} className="flex items-center gap-1.5 text-sm text-stone-700">
+        <label key={d.id} className="flex items-center gap-1.5 text-sm text-slate-700">
           <input type="checkbox" name="departmentIds" value={d.id} defaultChecked={checked(d.id)} className="size-4 accent-brand-600" />
           {shortDepartment(d.name)}
         </label>

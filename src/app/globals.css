@@ -4,20 +4,22 @@
   --font-sans: var(--font-body), ui-sans-serif, system-ui, sans-serif;
   --font-display: var(--font-heading), ui-serif, Georgia, serif;
 
-  --color-brand-50: #eefbf4;
-  --color-brand-100: #d5f5e3;
-  --color-brand-200: #aeeacb;
-  --color-brand-500: #1f9d63;
-  --color-brand-600: #137f4f;
-  --color-brand-700: #0f6541;
-  --color-brand-800: #0e5036;
-  --color-brand-900: #0b3d2a;
-  --color-brand-950: #05231a;
+  /* Brand colours taken from the Learning Hub logo: royal blue ring, turquoise tree. */
+  --color-brand-50: #eef1fd;
+  --color-brand-100: #dde3fb;
+  --color-brand-200: #bcc8f6;
+  --color-brand-300: #93a4ee;
+  --color-brand-500: #3d4fd0;
+  --color-brand-600: #2b3aae;
+  --color-brand-700: #222e8f;
+  --color-brand-800: #1c2674;
+  --color-brand-900: #18205f;
+  --color-brand-950: #0e1340;
 
-  --color-sun-300: #fcd57a;
-  --color-sun-400: #f8bd3f;
-  --color-sun-500: #f0a01c;
-  --color-sun-600: #d17c10;
+  --color-accent-300: #8fdcec;
+  --color-accent-400: #5ccbe2;
+  --color-accent-500: #2fb4d0;
+  --color-accent-600: #0f7f99;
 }
 
 html {
@@ -25,6 +27,6 @@ html {
 }
 
 body {
-  background: #fbfaf7;
-  color: #1c1917;
+  background: #f7f8fd;
+  color: #171a2e;
 }

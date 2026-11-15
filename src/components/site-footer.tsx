@@ -8,6 +8,7 @@ export function SiteFooter() {
       <div className="mx-auto grid max-w-6xl gap-10 px-4 py-14 sm:px-6 md:grid-cols-3">
         <div className="space-y-3">
           <Logo light />
+          <p className="text-xs font-semibold uppercase tracking-wider text-accent-300">{SITE.tagline}</p>
           <p className="max-w-xs text-sm text-brand-200/80">
             Paid tutorials for Air Force Institute of Technology (AFIT) students, held right on
             campus.

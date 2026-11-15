@@ -18,15 +18,15 @@ export default async function AdminLocationsPage({ searchParams }: { searchParam
       <PageHeader title="Locations" description="Lecture rooms and halls on campus where tutorials hold." />
       <ErrorBanner message={firstString(params.error)} />
 
-      <Card className="divide-y divide-stone-100">
+      <Card className="divide-y divide-slate-100">
         {locations.map((l) => (
           <div key={l.id} className="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
             <div>
-              <p className="font-medium text-stone-900">{l.name}</p>
-              <p className="text-sm text-stone-500">{l.kind}</p>
+              <p className="font-medium text-slate-900">{l.name}</p>
+              <p className="text-sm text-slate-500">{l.kind}</p>
             </div>
             <div className="flex items-center gap-4 text-sm">
-              <span className="text-stone-500">{l._count.assignments} tutorial{l._count.assignments === 1 ? "" : "s"}</span>
+              <span className="text-slate-500">{l._count.assignments} tutorial{l._count.assignments === 1 ? "" : "s"}</span>
               <ActiveBadge active={l.active} />
               <form action={toggleLocation}>
                 <input type="hidden" name="id" value={l.id} />
@@ -37,7 +37,7 @@ export default async function AdminLocationsPage({ searchParams }: { searchParam
         ))}
       </Card>
 
-      <h2 className="mb-4 mt-10 text-lg font-semibold text-stone-900">Add a location</h2>
+      <h2 className="mb-4 mt-10 text-lg font-semibold text-slate-900">Add a location</h2>
       <Card className="p-5">
         <form action={createLocation} className="grid gap-4 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
           <Field label="Name"><input name="name" required placeholder="e.g. LR 401 or Hall C2" className={inputClass} /></Field>

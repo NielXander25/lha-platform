@@ -84,7 +84,7 @@ export default async function HomePage() {
       <section className="relative overflow-hidden">
         <div
           aria-hidden
-          className="pointer-events-none absolute -top-32 right-[-10%] size-[36rem] rounded-full bg-sun-300/30 blur-3xl"
+          className="pointer-events-none absolute -top-32 right-[-10%] size-[36rem] rounded-full bg-accent-300/30 blur-3xl"
         />
         <div
           aria-hidden
@@ -102,7 +102,7 @@ export default async function HomePage() {
                 <svg
                   aria-hidden
                   viewBox="0 0 300 12"
-                  className="absolute -bottom-2 left-0 h-3 w-full text-sun-400"
+                  className="absolute -bottom-2 left-0 h-3 w-full text-accent-400"
                   preserveAspectRatio="none"
                 >
                   <path d="M2 9c60-6 160-8 296-3" stroke="currentColor" strokeWidth="4" fill="none" strokeLinecap="round" />
@@ -110,7 +110,7 @@ export default async function HomePage() {
               </span>
               .
             </h1>
-            <p className="mt-6 max-w-xl text-lg leading-relaxed text-stone-600">
+            <p className="mt-6 max-w-xl text-lg leading-relaxed text-slate-600">
               Learning Hub Africa offers paid tutorials for engineering students at the Air Force
               Institute of Technology, from 100 to 500 Level. Our tutors explain the hard parts
               clearly and prepare you for tests and exams, right on campus.
@@ -133,18 +133,18 @@ export default async function HomePage() {
           </div>
 
           <div className="relative">
-            <div className="rounded-3xl border border-stone-200 bg-white p-6 shadow-xl shadow-stone-900/5">
+            <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xl shadow-slate-900/5">
               <div className="flex items-center justify-between">
-                <p className="text-sm font-semibold text-stone-500">Featured tutorial</p>
+                <p className="text-sm font-semibold text-slate-500">Featured tutorial</p>
                 <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-800">
                   Now running
                 </span>
               </div>
               <p className="mt-4 font-display text-2xl font-semibold text-brand-950">
-                <span className="block text-sm font-bold tracking-wide text-sun-600">MTH 101</span>
+                <span className="block text-sm font-bold tracking-wide text-accent-600">MTH 101</span>
                 Elementary Mathematics I
               </p>
-              <div className="mt-5 space-y-3 text-sm text-stone-600">
+              <div className="mt-5 space-y-3 text-sm text-slate-600">
                 <p className="flex items-center gap-3">
                   <GraduationCap className="size-4 text-brand-600" /> Mathematics tutor
                 </p>
@@ -165,11 +165,11 @@ export default async function HomePage() {
                 )}
               </div>
             </div>
-            <div className="absolute -bottom-14 left-8 hidden items-center gap-3 rounded-2xl border border-stone-200 bg-white px-4 py-3 shadow-lg sm:flex">
-              <Building2 className="size-8 rounded-lg bg-sun-300/60 p-1.5 text-sun-600" />
+            <div className="absolute -bottom-14 left-8 hidden items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-lg sm:flex">
+              <Building2 className="size-8 rounded-lg bg-accent-300/60 p-1.5 text-accent-600" />
               <div className="text-sm">
-                <p className="font-semibold text-stone-800">Right on campus</p>
-                <p className="text-stone-500">Lecture rooms & halls at AFIT</p>
+                <p className="font-semibold text-slate-800">Right on campus</p>
+                <p className="text-slate-500">Lecture rooms & halls at AFIT</p>
               </div>
             </div>
           </div>
@@ -177,12 +177,12 @@ export default async function HomePage() {
       </section>
 
       {/* Stats */}
-      <section className="border-y border-stone-200 bg-white">
+      <section className="border-y border-slate-200 bg-white">
         <div className="mx-auto grid max-w-6xl grid-cols-2 gap-6 px-4 py-10 sm:px-6 md:grid-cols-4">
           {stats.map((s) => (
             <div key={s.label}>
               <p className="font-display text-3xl font-semibold text-brand-700">{s.value}</p>
-              <p className="mt-1 text-sm text-stone-500">{s.label}</p>
+              <p className="mt-1 text-sm text-slate-500">{s.label}</p>
             </div>
           ))}
         </div>
@@ -192,16 +192,16 @@ export default async function HomePage() {
       <section id="about" className="mx-auto max-w-6xl scroll-mt-20 px-4 py-20 sm:px-6">
         <div className="grid gap-12 lg:grid-cols-[1fr_1.4fr]">
           <div>
-            <p className="text-sm font-semibold uppercase tracking-wider text-sun-600">About us</p>
+            <p className="text-sm font-semibold uppercase tracking-wider text-accent-600">About us</p>
             <h2 className="mt-3 font-display text-3xl font-semibold tracking-tight text-brand-950 sm:text-4xl">
               Helping AFIT students learn, not just cram.
             </h2>
-            <p className="mt-5 leading-relaxed text-stone-600">
+            <p className="mt-5 leading-relaxed text-slate-600">
               Learning Hub Africa was founded on a simple idea: with the right guidance, every
               student can thrive. Large lecture halls leave many students behind, so we bring
               together tutors who know each course inside out and the students who need them.
             </p>
-            <p className="mt-4 leading-relaxed text-stone-600">
+            <p className="mt-4 leading-relaxed text-slate-600">
               From 100 Level mathematics, physics and chemistry to 500 Level departmental courses,
               our tutorials follow your AFIT course outline and are measured by one thing: how well
               our students do.
@@ -209,10 +209,10 @@ export default async function HomePage() {
           </div>
           <div className="grid gap-5 sm:grid-cols-2">
             {values.map((v) => (
-              <div key={v.title} className="rounded-2xl border border-stone-200 bg-white p-6">
+              <div key={v.title} className="rounded-2xl border border-slate-200 bg-white p-6">
                 <v.icon className="size-10 rounded-xl bg-brand-50 p-2 text-brand-600" />
-                <h3 className="mt-4 text-lg font-semibold text-stone-900">{v.title}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-stone-600">{v.body}</p>
+                <h3 className="mt-4 text-lg font-semibold text-slate-900">{v.title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-slate-600">{v.body}</p>
               </div>
             ))}
           </div>
@@ -220,13 +220,13 @@ export default async function HomePage() {
       </section>
 
       {/* Departments */}
-      <section className="border-t border-stone-200 bg-white">
+      <section className="border-t border-slate-200 bg-white">
         <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6">
-          <p className="text-sm font-semibold uppercase tracking-wider text-sun-600">Who it&apos;s for</p>
+          <p className="text-sm font-semibold uppercase tracking-wider text-accent-600">Who it&apos;s for</p>
           <h2 className="mt-3 max-w-2xl font-display text-3xl font-semibold tracking-tight text-brand-950 sm:text-4xl">
             Every engineering department, 100 to 500 Level.
           </h2>
-          <p className="mt-4 max-w-2xl text-stone-600">
+          <p className="mt-4 max-w-2xl text-slate-600">
             Choose your department or level to see the tutorials for your courses.
           </p>
           <ul className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -234,7 +234,7 @@ export default async function HomePage() {
               <li key={d.name}>
                 <Link
                   href={`/tutorials?department=${encodeURIComponent(d.name)}`}
-                  className="group flex h-full items-center justify-between gap-3 rounded-xl border border-stone-200 bg-[#fbfaf7] px-4 py-3.5 font-medium text-stone-800 transition hover:border-brand-300 hover:bg-brand-50"
+                  className="group flex h-full items-center justify-between gap-3 rounded-xl border border-slate-200 bg-[#f7f8fd] px-4 py-3.5 font-medium text-slate-800 transition hover:border-brand-300 hover:bg-brand-50"
                 >
                   {d.name}
                   <ArrowRight className="size-4 shrink-0 text-brand-600 transition group-hover:translate-x-0.5" />
@@ -243,12 +243,12 @@ export default async function HomePage() {
             ))}
           </ul>
           <div className="mt-6 flex flex-wrap items-center gap-2">
-            <span className="mr-1 text-sm font-semibold text-stone-500">By level:</span>
+            <span className="mr-1 text-sm font-semibold text-slate-500">By level:</span>
             {LEVELS.map((level) => (
               <Link
                 key={level}
                 href={`/tutorials?level=${encodeURIComponent(level)}`}
-                className="rounded-full border border-stone-200 px-3.5 py-1.5 text-sm font-medium text-stone-600 transition hover:border-brand-300 hover:text-brand-700"
+                className="rounded-full border border-slate-200 px-3.5 py-1.5 text-sm font-medium text-slate-600 transition hover:border-brand-300 hover:text-brand-700"
               >
                 {level}
               </Link>
@@ -260,11 +260,11 @@ export default async function HomePage() {
       {/* Pricing */}
       {tiers.length > 0 && (
         <section id="pricing" className="mx-auto max-w-6xl scroll-mt-20 px-4 py-20 sm:px-6">
-          <p className="text-sm font-semibold uppercase tracking-wider text-sun-600">Pricing</p>
+          <p className="text-sm font-semibold uppercase tracking-wider text-accent-600">Pricing</p>
           <h2 className="mt-3 max-w-2xl font-display text-3xl font-semibold tracking-tight text-brand-950 sm:text-4xl">
             Three ways to learn. You choose.
           </h2>
-          <p className="mb-10 mt-4 max-w-2xl text-stone-600">
+          <p className="mb-10 mt-4 max-w-2xl text-slate-600">
             The same prices apply to every course, {PRICE_UNIT}. Pick the class size that suits you,
             choose your course and pay online.
           </p>
@@ -275,7 +275,7 @@ export default async function HomePage() {
       {/* How it works */}
       <section id="how-it-works" className="scroll-mt-16 bg-brand-900 text-white">
         <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6">
-          <p className="text-sm font-semibold uppercase tracking-wider text-sun-400">How it works</p>
+          <p className="text-sm font-semibold uppercase tracking-wider text-accent-400">How it works</p>
           <h2 className="mt-3 max-w-2xl font-display text-3xl font-semibold tracking-tight sm:text-4xl">
             Finding the right tutorial takes four simple steps.
           </h2>
@@ -283,7 +283,7 @@ export default async function HomePage() {
             {steps.map((s, i) => (
               <li key={s.title} className="rounded-2xl bg-white/5 p-6 ring-1 ring-white/10">
                 <div className="flex items-center justify-between">
-                  <s.icon className="size-8 text-sun-300" />
+                  <s.icon className="size-8 text-accent-300" />
                   <span className="font-display text-4xl font-semibold text-white/15">0{i + 1}</span>
                 </div>
                 <h3 className="mt-5 text-lg font-semibold">{s.title}</h3>
@@ -296,9 +296,9 @@ export default async function HomePage() {
 
       {/* CTA */}
       <section className="mx-auto max-w-6xl px-4 py-20 sm:px-6">
-        <div className="relative overflow-hidden rounded-3xl bg-sun-400 px-8 py-14 text-center sm:px-16">
-          <div aria-hidden className="absolute -right-16 -top-16 size-64 rounded-full bg-sun-300" />
-          <div aria-hidden className="absolute -bottom-20 -left-10 size-56 rounded-full bg-sun-500/40" />
+        <div className="relative overflow-hidden rounded-3xl bg-accent-400 px-8 py-14 text-center sm:px-16">
+          <div aria-hidden className="absolute -right-16 -top-16 size-64 rounded-full bg-accent-300" />
+          <div aria-hidden className="absolute -bottom-20 -left-10 size-56 rounded-full bg-accent-500/40" />
           <div className="relative">
             <h2 className="font-display text-3xl font-semibold tracking-tight text-brand-950 sm:text-4xl">
               Struggling with a course this semester?
