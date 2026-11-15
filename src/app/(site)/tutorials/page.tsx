@@ -57,11 +57,11 @@ export default async function TutorialsPage({ searchParams }: { searchParams: Se
   return (
     <div className="mx-auto max-w-6xl px-4 py-14 sm:px-6">
       <header className="max-w-2xl">
-        <p className="text-sm font-semibold uppercase tracking-wider text-sun-600">Tutorials</p>
+        <p className="text-sm font-semibold uppercase tracking-wider text-accent-600">Tutorials</p>
         <h1 className="mt-2 font-display text-4xl font-semibold tracking-tight text-brand-950">
           AFIT course tutorials
         </h1>
-        <p className="mt-4 text-stone-600">
+        <p className="mt-4 text-slate-600">
           Choose your department and level to see the tutorials for your courses, with clear prices,
           the tutor, and the lecture room or hall where each one holds.
         </p>
@@ -74,8 +74,8 @@ export default async function TutorialsPage({ searchParams }: { searchParams: Se
             {tiers.map((t) => (
               <li key={t.id} className="rounded-xl bg-white px-4 py-3">
                 <p className="font-display text-2xl font-semibold text-brand-800">{formatPrice(t.price)}</p>
-                <p className="text-sm font-semibold text-stone-800">{t.name}</p>
-                <p className="text-xs text-stone-500">{t.ratio}</p>
+                <p className="text-sm font-semibold text-slate-800">{t.name}</p>
+                <p className="text-xs text-slate-500">{t.ratio}</p>
               </li>
             ))}
           </ul>
@@ -95,7 +95,7 @@ export default async function TutorialsPage({ searchParams }: { searchParams: Se
       </div>
 
       {courses.length === 0 ? (
-        <div className="mt-10 rounded-2xl border border-dashed border-stone-300 p-12 text-center text-stone-500">
+        <div className="mt-10 rounded-2xl border border-dashed border-slate-300 p-12 text-center text-slate-500">
           No tutorials listed yet for{" "}
           {[department, level, venue].filter(Boolean).join(" · ") || "this selection"}.{" "}
           <Link href="/tutorials" className="font-semibold text-brand-700 underline">
@@ -138,10 +138,10 @@ function FilterRow({
 }) {
   const pill = "rounded-full border px-3.5 py-1.5 text-sm font-medium transition";
   const on = "border-brand-600 bg-brand-600 text-white";
-  const off = "border-stone-200 bg-white text-stone-600 hover:border-brand-300";
+  const off = "border-slate-200 bg-white text-slate-600 hover:border-brand-300";
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <span className="w-24 text-sm font-semibold text-stone-500">{label}</span>
+      <span className="w-24 text-sm font-semibold text-slate-500">{label}</span>
       <Link href={href(undefined)} className={cn(pill, !active ? on : off)}>
         All
       </Link>

@@ -47,27 +47,27 @@ export default async function AssignmentsPage({ searchParams }: { searchParams: 
           <Card key={c.id} className={cn("p-5", !c.active && "opacity-60")}>
             <div className="flex flex-wrap items-start justify-between gap-2">
               <div>
-                <Link href={`/tutorials/${c.slug}`} className="font-semibold text-stone-900 hover:text-brand-700">
+                <Link href={`/tutorials/${c.slug}`} className="font-semibold text-slate-900 hover:text-brand-700">
                   {c.code ? `${c.code}: ` : ""}{c.title}
                 </Link>
-                <p className="text-sm text-stone-500">
+                <p className="text-sm text-slate-500">
                   {c.category} · {c.level}
                   {!c.active && " · hidden from visitors"}
                 </p>
               </div>
-              <span className="text-xs font-semibold text-stone-500">
+              <span className="text-xs font-semibold text-slate-500">
                 {c.assignments.length} assignment{c.assignments.length === 1 ? "" : "s"}
               </span>
             </div>
 
             {c.assignments.length > 0 && (
-              <ul className="mt-4 divide-y divide-stone-100 rounded-xl border border-stone-200">
+              <ul className="mt-4 divide-y divide-slate-100 rounded-xl border border-slate-200">
                 {c.assignments.map((a) => (
                   <li key={a.id} className="grid gap-3 px-4 py-3 text-sm md:grid-cols-[1fr_1fr_1.3fr_auto] md:items-center">
-                    <span className={cn("font-medium text-stone-800", !a.tutor.active && "text-stone-400 line-through")}>
+                    <span className={cn("font-medium text-slate-800", !a.tutor.active && "text-slate-400 line-through")}>
                       {a.tutor.name}
                     </span>
-                    <span className={cn("text-stone-600", !a.location.active && "text-stone-400 line-through")}>
+                    <span className={cn("text-slate-600", !a.location.active && "text-slate-400 line-through")}>
                       {locLabel(a.location)}
                     </span>
                     <form key={a.schedule ?? ""} action={updateAssignmentSchedule} className="flex gap-2">

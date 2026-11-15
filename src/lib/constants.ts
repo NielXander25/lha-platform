@@ -1,6 +1,6 @@
 export const SITE = {
   name: "Learning Hub Africa",
-  tagline: "Tutorials for AFIT students",
+  tagline: "Forging Leaders, Igniting Excellence, Transforming Futures",
   school: "Air Force Institute of Technology",
   schoolShort: "AFIT",
   email: "hello@learninghubafrica.com",
