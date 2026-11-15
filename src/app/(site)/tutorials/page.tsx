@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = {
   title: "Tutorials & pricing",
-  description: "Browse Learning Hub Africa university course tutorials and see prices for every course.",
+  description: "Browse Learning Hub Africa tutorials for AFIT courses and see prices for every course.",
 };
 
 type SearchParams = Promise<{ [key: string]: string | string[] | undefined }>;
@@ -15,7 +15,7 @@ export default async function TutorialsPage({ searchParams }: { searchParams: Se
   const params = await searchParams;
   const category = typeof params.category === "string" ? params.category : undefined;
   const level = typeof params.level === "string" ? params.level : undefined;
-  const city = typeof params.city === "string" ? params.city : undefined;
+  const venue = typeof params.venue === "string" ? params.venue : undefined;
 
   const visibleAssignments = { tutor: { active: true }, location: { active: true } };
 
@@ -25,30 +25,28 @@ export default async function TutorialsPage({ searchParams }: { searchParams: Se
         active: true,
         category,
         level,
-        ...(city && { assignments: { some: { ...visibleAssignments, location: { active: true, city } } } }),
+        ...(venue && { assignments: { some: { ...visibleAssignments, location: { active: true, name: venue } } } }),
       },
       include: {
-        assignments: { where: visibleAssignments, select: { location: { select: { city: true, isOnline: true } } } },
+        assignments: { where: visibleAssignments, select: { location: { select: { name: true } } } },
       },
       orderBy: [{ level: "asc" }, { code: "asc" }, { title: "asc" }],
     }),
     prisma.course.findMany({ where: { active: true }, select: { category: true, level: true } }),
     prisma.location.findMany({
       where: { active: true, assignments: { some: { tutor: { active: true }, course: { active: true } } } },
-      select: { city: true, isOnline: true },
+      select: { name: true },
+      orderBy: [{ kind: "desc" }, { name: "asc" }],
     }),
   ]);
 
   const categories = [...new Set(allActive.map((c) => c.category))].sort();
   const levels = [...new Set(allActive.map((c) => c.level))].sort();
-  const cities = [...new Set(locations.map((l) => l.city))].sort((a, b) =>
-    a === "Anywhere" ? -1 : b === "Anywhere" ? 1 : a.localeCompare(b),
-  );
-  const cityLabel = (c: string) => (locations.some((l) => l.city === c && l.isOnline) ? "Online" : c);
+  const venues = locations.map((l) => l.name);
 
-  const hrefWith = (key: "category" | "level" | "city", value?: string) => {
+  const hrefWith = (key: "category" | "level" | "venue", value?: string) => {
     const next = new URLSearchParams();
-    const merged = { category, level, city, [key]: value };
+    const merged = { category, level, venue, [key]: value };
     for (const [k, v] of Object.entries(merged)) if (v) next.set(k, v);
     const qs = next.toString();
     return qs ? `/tutorials?${qs}` : "/tutorials";
@@ -59,7 +57,7 @@ export default async function TutorialsPage({ searchParams }: { searchParams: Se
       <header className="max-w-2xl">
         <p className="text-sm font-semibold uppercase tracking-wider text-sun-600">Tutorials</p>
         <h1 className="mt-2 font-display text-4xl font-semibold tracking-tight text-brand-950">
-          University course tutorials
+          AFIT course tutorials
         </h1>
         <p className="mt-4 text-stone-600">
           Clear prices, no hidden fees. See who teaches each tutorial and where it takes place, then
@@ -68,9 +66,9 @@ export default async function TutorialsPage({ searchParams }: { searchParams: Se
       </header>
 
       <div className="mt-10 space-y-3">
-        <FilterRow label="Faculty" items={categories} active={category} href={(v) => hrefWith("category", v)} />
+        <FilterRow label="Subject" items={categories} active={category} href={(v) => hrefWith("category", v)} />
         <FilterRow label="Level" items={levels} active={level} href={(v) => hrefWith("level", v)} />
-        <FilterRow label="Where" items={cities} active={city} href={(v) => hrefWith("city", v)} format={cityLabel} />
+        <FilterRow label="Venue" items={venues} active={venue} href={(v) => hrefWith("venue", v)} />
       </div>
 
       {courses.length === 0 ? (
@@ -86,7 +84,7 @@ export default async function TutorialsPage({ searchParams }: { searchParams: Se
             <CourseCard
               key={course.id}
               course={course}
-              places={[...new Set(course.assignments.map((a) => (a.location.isOnline ? "Online" : a.location.city)))]}
+              places={[...new Set(course.assignments.map((a) => a.location.name))]}
             />
           ))}
         </div>

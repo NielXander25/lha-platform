@@ -162,21 +162,17 @@ export async function toggleTutor(formData: FormData) {
 
 const LocationSchema = z.object({
   name: z.string().trim().min(2),
-  city: z.string().trim().min(2),
-  address: z.string().trim().optional(),
-  isOnline: z
-    .string()
-    .optional()
-    .transform((v) => v === "on"),
+  kind: z.string().trim().min(2),
 });
 
 export async function createLocation(formData: FormData) {
   await requireAdmin();
   const parsed = LocationSchema.safeParse(form(formData));
-  if (!parsed.success) fail("/admin/locations", "Please enter a name and city.");
-  await prisma.location.create({
-    data: { ...parsed.data, address: parsed.data.address || null },
-  });
+  if (!parsed.success) fail("/admin/locations", "Please enter a venue name and type.");
+  if (await prisma.location.findUnique({ where: { name: parsed.data.name } })) {
+    fail("/admin/locations", "A venue with that name already exists.");
+  }
+  await prisma.location.create({ data: parsed.data });
   revalidatePath("/admin/locations");
 }
 

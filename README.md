@@ -1,9 +1,9 @@
 # Learning Hub Africa
 
-Website and admin tool for Learning Hub Africa's paid university course tutorials.
+Website and admin tool for Learning Hub Africa's paid tutorials for Air Force Institute of Technology (AFIT) students.
 
 - **Public site** (no sign-up; students are visitors): home page about the organisation, a tutorials
-  catalogue (by course code, e.g. MTH 101) with per-semester prices and faculty/level/location filters (`/tutorials`), and a page per tutorial
+  catalogue (by course code, e.g. MTH 101) with per-semester prices and subject/level/venue filters (`/tutorials`), and a page per tutorial
   showing its tutors, locations and schedules, with WhatsApp/phone/email contact buttons.
 - **Admin** (`/admin`, password protected): assign tutors to tutorials along with a location (and an
   optional schedule), manage course prices, tutors and locations.
@@ -18,7 +18,7 @@ Next.js 16 (App Router, Server Actions) · TypeScript · Tailwind CSS 4 · Prism
 cp .env.example .env      # then set ADMIN_PASSWORD
 npm install
 npm run db:push           # create the local SQLite database
-npm run db:seed           # load sample courses, tutors and locations
+npm run db:seed           # load starter courses, tutors and AFIT venues
 npm run dev
 ```
 
@@ -32,18 +32,17 @@ username and password: use any username and the `ADMIN_PASSWORD` from `.env`.
 | `npm run dev` | Start the dev server |
 | `npm run build` / `npm start` | Production build / serve |
 | `npm run db:push` | Sync the Prisma schema to the database |
-| `npm run db:seed` | Load sample data |
-| `npm run db:reset` | Wipe the database and reseed |
+| `npm run db:seed` | Load starter data (only into an empty database) |
+| `npm run db:reset` | Delete the local database and reload the starter data |
 | `npm run db:studio` | Browse the data in Prisma Studio |
 
 ## Data model
 
-`Course` (course code, faculty, level, price per semester) · `Tutor` · `Location` · `Assignment` (a tutor teaching a course at a location,
-with an optional schedule). A course can have several assignments, e.g. one tutor online and another at
-a study centre near campus.
+`Course` (course code, faculty, level, price per semester) · `Tutor` · `Location` (campus venue, e.g. LR 101, Hall C1) · `Assignment` (a tutor teaching a course at a location,
+with an optional schedule). A course can have several assignments, e.g. the same course in LR 101 and Hall C1.
 
 ## Before going live
 
 - Switch the Prisma datasource to PostgreSQL (SQLite files don't persist on serverless hosts).
 - Replace the shared admin password with proper staff accounts.
-- Replace the sample courses, prices, tutors, locations and contact details (`src/lib/constants.ts`).
+- Replace the placeholder course titles, prices, tutors, schedules and contact details (`src/lib/constants.ts`).

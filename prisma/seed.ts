@@ -1,5 +1,6 @@
-// Sample data so the site has something to show (university course tutorials). All prices, tutors and
-// locations below are placeholders: replace them with the real ones.
+// Starter data for Learning Hub Africa (AFIT tutorials).
+// Course titles, descriptions, prices, tutors and schedules are placeholders:
+// edit them in the admin area or here.
 import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
@@ -8,120 +9,77 @@ const course = (
   code: string,
   title: string,
   category: string,
-  level: string,
   price: number,
   summary: string,
   description: string,
-  sessionsPerWeek = 2,
-  sessionLengthMins = 120,
 ) => ({
   slug: code.toLowerCase().replace(/\s+/g, "-"),
   code,
   title,
   category,
-  level,
+  level: "100 Level",
   price,
   billingUnit: "semester",
   summary,
   description,
-  sessionsPerWeek,
-  sessionLengthMins,
+  sessionsPerWeek: 2,
+  sessionLengthMins: 120,
 });
 
 const courses = [
-  course("MTH 101", "Elementary Mathematics I", "Sciences", "100 Level", 35000,
-    "Sets, real numbers, sequences, quadratics, trigonometry and complex numbers.",
-    "Step-by-step tutorials through the full MTH 101 course outline, with worked examples, weekly practice questions and past-question sessions before tests and exams."),
-  course("MTH 102", "Elementary Mathematics II", "Sciences", "100 Level", 35000,
-    "Differentiation, integration and their applications.",
-    "Build a solid foundation in calculus: limits, differentiation techniques, integration and applications, with plenty of exam-style practice."),
-  course("PHY 101", "General Physics I", "Sciences", "100 Level", 35000,
-    "Mechanics, motion, work, energy and properties of matter.",
-    "Clear explanations of core mechanics concepts and lots of calculation practice, so you can tackle theory and problem questions with confidence."),
-  course("CHM 101", "General Chemistry I", "Sciences", "100 Level", 35000,
-    "Atomic structure, bonding, stoichiometry and the periodic table.",
-    "Covers the CHM 101 outline with simplified notes, worked calculations and past questions from recent semesters."),
-  course("BIO 101", "General Biology I", "Sciences", "100 Level", 30000,
-    "Cell biology, heredity, evolution and the diversity of living things.",
-    "Concept-focused tutorials with diagrams, summaries and test-style questions to help you understand and remember the material."),
-  course("CSC 101", "Introduction to Computer Science", "Sciences", "100 Level", 30000,
-    "Computer basics, problem solving, algorithms and an introduction to programming.",
-    "Practical tutorials that cover the theory you'll be examined on, plus hands-on help writing your first programs."),
-  course("STA 111", "Descriptive Statistics", "Sciences", "100 Level", 30000,
-    "Data presentation, measures of location and dispersion, and probability basics.",
-    "Learn to handle statistics questions quickly and accurately, with formula sheets and timed practice."),
-  course("ECO 101", "Principles of Economics I", "Social Sciences", "100 Level", 30000,
-    "Demand and supply, elasticity, consumer behaviour and production.",
-    "Understand the theory, draw the graphs correctly and write strong exam answers, with past questions in every session."),
-  course("ACC 101", "Introduction to Financial Accounting", "Management Sciences", "100 Level", 30000,
-    "Double entry, the ledger, trial balance and final accounts.",
-    "Practice-heavy tutorials that take you from bookkeeping basics to preparing final accounts confidently."),
-  course("MTH 201", "Mathematical Methods I", "Sciences", "200 Level", 40000,
-    "Real-variable calculus, series, partial differentiation and vector analysis.",
-    "Tutorials that break down MTH 201's tougher topics, with weekly problem sets and exam preparation."),
-  course("EEE 201", "Circuit Theory I", "Engineering", "200 Level", 45000,
-    "Circuit laws, network theorems, AC analysis and transients.",
-    "Work through circuit analysis problems step by step with an engineer, from Kirchhoff's laws to AC circuits."),
-  course("MEE 211", "Engineering Mechanics (Statics)", "Engineering", "200 Level", 45000,
-    "Forces, equilibrium, trusses, friction and centroids.",
-    "Free-body diagrams and problem-solving techniques for statics, with lots of past-question practice."),
+  course("MTH 101", "Elementary Mathematics I", "Mathematics", 15000,
+    "Sets, real numbers, indices, logarithms, quadratics, sequences and series, and trigonometry.",
+    "Step-by-step tutorials through the MTH 101 course outline, with worked examples, practice questions and past-question sessions before tests and exams."),
+  course("MTH 103", "Elementary Mathematics III", "Mathematics", 15000,
+    "Vectors, coordinate geometry and other MTH 103 topics.",
+    "Clear explanations of every MTH 103 topic, plenty of practice problems and revision sessions ahead of tests and exams."),
+  course("PHY 101", "General Physics I", "Physics", 15000,
+    "Mechanics: units, motion, Newton's laws, work, energy and properties of matter.",
+    "Concept-first tutorials with lots of calculation practice, so you can tackle both theory and problem questions in PHY 101 with confidence."),
+  course("PHY 107", "General Physics Practical I", "Physics", 12000,
+    "Experiments, measurements, error analysis, graphs and writing up practical reports.",
+    "Get comfortable with the PHY 107 experiments: what to measure, how to plot and analyse results, and how to write reports that score well."),
+  course("CHM 101", "General Chemistry I", "Chemistry", 15000,
+    "Atomic structure, chemical bonding, stoichiometry and the periodic table.",
+    "Simplified notes, worked calculations and past questions covering the CHM 101 course outline."),
 ];
 
 const tutors = [
-  { name: "Adaeze Okafor", email: "adaeze.okafor@example.com", phone: "+234 800 000 0001", subjects: "Mathematics, Statistics", bio: "First-class Mathematics graduate, MSc in Applied Mathematics." },
-  { name: "Kwame Mensah", email: "kwame.mensah@example.com", phone: "+234 800 000 0002", subjects: "Physics, Engineering", bio: "Electrical engineer who has tutored 100–300 level students for 5 years." },
-  { name: "Fatima Bello", email: "fatima.bello@example.com", phone: "+234 800 000 0003", subjects: "Chemistry, Biology", bio: "Biochemistry graduate, currently completing an MSc." },
-  { name: "Chinedu Eze", email: "chinedu.eze@example.com", phone: "+234 800 000 0004", subjects: "Computer Science, Mathematics", bio: "Software developer and Computer Science graduate." },
-  { name: "Amina Diallo", email: "amina.diallo@example.com", phone: "+234 800 000 0005", subjects: "Economics, Accounting", bio: "Chartered accountant with a BSc in Economics." },
+  { name: "Tutor One", email: "tutor1@example.com", subjects: "Mathematics", bio: "Replace with a real tutor." },
+  { name: "Tutor Two", email: "tutor2@example.com", subjects: "Physics", bio: "Replace with a real tutor." },
+  { name: "Tutor Three", email: "tutor3@example.com", subjects: "Chemistry", bio: "Replace with a real tutor." },
 ];
 
 const locations = [
-  { name: "Online (Live video)", city: "Anywhere", isOnline: true },
-  { name: "Akoka Study Centre", city: "Lagos", address: "Near UNILAG main gate, Akoka" },
-  { name: "Bodija Study Centre", city: "Ibadan", address: "Near UI, Bodija" },
-  { name: "Ile-Ife Study Centre", city: "Ile-Ife", address: "Near OAU campus" },
-  { name: "Nsukka Study Centre", city: "Nsukka", address: "Near UNN campus" },
+  ...["LR 101", "LR 102", "LR 201", "LR 202", "LR 301", "LR 302"].map((name) => ({ name, kind: "Lecture room" })),
+  ...["Hall A", "Hall B1", "Hall B3", "Hall C1", "Hall C3"].map((name) => ({ name, kind: "Hall" })),
+];
+
+// [course code, tutor email, location, schedule]
+const assignments: [string, string, string, string][] = [
+  ["MTH 101", "tutor1@example.com", "LR 101", "Mon & Wed, 4:00 pm"],
+  ["MTH 103", "tutor1@example.com", "LR 102", "Tue & Thu, 4:00 pm"],
+  ["PHY 101", "tutor2@example.com", "LR 201", "Mon & Wed, 4:00 pm"],
+  ["PHY 107", "tutor2@example.com", "Hall B1", "Fri, 3:00 pm"],
+  ["CHM 101", "tutor3@example.com", "Hall C1", "Tue & Thu, 5:00 pm"],
 ];
 
 async function main() {
-  for (const c of courses) {
-    await prisma.course.upsert({ where: { slug: c.slug }, update: c, create: c });
+  if ((await prisma.course.count()) > 0) {
+    console.log("Database already has data. Run `npm run db:reset` to replace it with the starter data.");
+    return;
   }
-  for (const t of tutors) {
-    await prisma.tutor.upsert({ where: { email: t.email }, update: t, create: t });
+  await prisma.course.createMany({ data: courses });
+  await prisma.tutor.createMany({ data: tutors });
+  await prisma.location.createMany({ data: locations });
+  for (const [code, email, locationName, schedule] of assignments) {
+    const [c, t, l] = await Promise.all([
+      prisma.course.findFirstOrThrow({ where: { code } }),
+      prisma.tutor.findUniqueOrThrow({ where: { email } }),
+      prisma.location.findUniqueOrThrow({ where: { name: locationName } }),
+    ]);
+    await prisma.assignment.create({ data: { courseId: c.id, tutorId: t.id, locationId: l.id, schedule } });
   }
-  if ((await prisma.location.count()) === 0) {
-    await prisma.location.createMany({ data: locations });
-  }
-  // Sample assignments: [course slug, tutor email, location name, schedule]
-  const assignments: [string, string, string, string][] = [
-    ["mth-101", "adaeze.okafor@example.com", "Akoka Study Centre", "Tue & Thu, 4:00 pm"],
-    ["mth-101", "chinedu.eze@example.com", "Online (Live video)", "Sat, 10:00 am & Sun, 4:00 pm"],
-    ["mth-102", "adaeze.okafor@example.com", "Akoka Study Centre", "Mon & Wed, 4:00 pm"],
-    ["phy-101", "kwame.mensah@example.com", "Bodija Study Centre", "Tue & Thu, 5:00 pm"],
-    ["phy-101", "kwame.mensah@example.com", "Online (Live video)", "Sat, 2:00 pm"],
-    ["chm-101", "fatima.bello@example.com", "Nsukka Study Centre", "Mon & Wed, 5:00 pm"],
-    ["bio-101", "fatima.bello@example.com", "Online (Live video)", "Tue & Fri, 7:00 pm"],
-    ["csc-101", "chinedu.eze@example.com", "Ile-Ife Study Centre", "Wed & Fri, 4:00 pm"],
-    ["sta-111", "adaeze.okafor@example.com", "Online (Live video)", "Mon & Thu, 7:00 pm"],
-    ["eco-101", "amina.diallo@example.com", "Bodija Study Centre", "Mon & Wed, 3:00 pm"],
-    ["acc-101", "amina.diallo@example.com", "Online (Live video)", "Tue & Thu, 7:00 pm"],
-    ["mth-201", "adaeze.okafor@example.com", "Online (Live video)", "Sat & Sun, 11:00 am"],
-    ["eee-201", "kwame.mensah@example.com", "Ile-Ife Study Centre", "Tue & Thu, 4:00 pm"],
-  ];
-  if ((await prisma.assignment.count()) === 0) {
-    for (const [slug, email, locationName, schedule] of assignments) {
-      const [course, tutor, location] = await Promise.all([
-        prisma.course.findUniqueOrThrow({ where: { slug } }),
-        prisma.tutor.findUniqueOrThrow({ where: { email } }),
-        prisma.location.findFirstOrThrow({ where: { name: locationName } }),
-      ]);
-      await prisma.assignment.create({
-        data: { courseId: course.id, tutorId: tutor.id, locationId: location.id, schedule },
-      });
-    }
-  }
-
   console.log(`Seeded ${courses.length} courses, ${tutors.length} tutors, ${locations.length} locations.`);
 }
 

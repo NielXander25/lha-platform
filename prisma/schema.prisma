@@ -1,4 +1,4 @@
-// Learning Hub Africa data model.
+// Learning Hub Africa data model: tutorials for Air Force Institute of Technology (AFIT) students.
 // SQLite for local development; switch `provider` to "postgresql" for production.
 
 generator client {
@@ -16,7 +16,7 @@ model Course {
   slug        String       @unique
   code        String?      // course code, e.g. "MTH 101"
   title       String
-  category    String       // faculty, e.g. Sciences, Engineering, Management Sciences
+  category    String       // subject, e.g. Mathematics, Physics, Chemistry
   level       String       // e.g. 100 Level, 200 Level
   summary     String
   description String
@@ -42,13 +42,11 @@ model Tutor {
   assignments Assignment[]
 }
 
-// Where a tutorial takes place: a study centre near a campus, or online.
+// Where a tutorial holds on campus, e.g. "LR 101" or "Hall C1".
 model Location {
   id          String       @id @default(cuid())
-  name        String
-  city        String
-  address     String?
-  isOnline    Boolean      @default(false)
+  name        String       @unique
+  kind        String       @default("Lecture room") // e.g. Lecture room, Hall
   active      Boolean      @default(true)
   createdAt   DateTime     @default(now())
   assignments Assignment[]

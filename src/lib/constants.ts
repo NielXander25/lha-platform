@@ -1,6 +1,8 @@
 export const SITE = {
   name: "Learning Hub Africa",
-  tagline: "Expert tutors. Real progress.",
+  tagline: "Tutorials for AFIT students",
+  school: "Air Force Institute of Technology",
+  schoolShort: "AFIT",
   email: "hello@learninghubafrica.com",
   phone: "+234 800 000 0000",
   // WhatsApp number in international format, digits only (used for wa.me links).

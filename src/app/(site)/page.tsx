@@ -6,7 +6,7 @@ import {
   CalendarCheck,
   GraduationCap,
   MapPin,
-  MonitorPlay,
+  Building2,
   Search,
   Target,
   Users,
@@ -15,7 +15,7 @@ import {
 const stats = [
   { value: "By course code", label: "Tutorials follow your course outline" },
   { value: "Per course", label: "Clear prices per semester" },
-  { value: "Near campus", label: "Study centres, or join online" },
+  { value: "On campus", label: "Lecture rooms and halls you know" },
   { value: "Small groups", label: "So every question gets answered" },
 ];
 
@@ -32,8 +32,8 @@ const values = [
   },
   {
     icon: MapPin,
-    title: "Near campus or online",
-    body: "Attend at a study centre close to your university, or join live online from your hostel.",
+    title: "Right here on campus",
+    body: "Tutorials hold in AFIT lecture rooms and halls, from LR 101 to Hall C3, so there's no travelling.",
   },
   {
     icon: Users,
@@ -81,7 +81,7 @@ export default function HomePage() {
         <div className="relative mx-auto grid max-w-6xl items-center gap-12 px-4 py-20 sm:px-6 md:py-28 lg:grid-cols-[1.15fr_1fr]">
           <div>
             <p className="mb-4 inline-flex items-center gap-2 rounded-full border border-brand-200 bg-white px-3 py-1 text-xs font-semibold uppercase tracking-wider text-brand-700">
-              University tutorials
+              Tutorials for AFIT students
             </p>
             <h1 className="font-display text-4xl font-semibold leading-[1.05] tracking-tight text-brand-950 sm:text-5xl lg:text-6xl">
               Pass your courses with a tutor who{" "}
@@ -99,9 +99,9 @@ export default function HomePage() {
               .
             </h1>
             <p className="mt-6 max-w-xl text-lg leading-relaxed text-stone-600">
-              Learning Hub Africa offers paid tutorials for university courses, from MTH 101 to
-              Circuit Theory. Our tutors explain the hard parts clearly and prepare you for tests
-              and exams, at study centres near campus or online.
+              Learning Hub Africa offers paid tutorials for Air Force Institute of Technology
+              courses like MTH 101, PHY 101 and CHM 101. Our tutors explain the hard parts clearly
+              and prepare you for tests and exams, right on campus.
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-3">
               <Link
@@ -134,28 +134,28 @@ export default function HomePage() {
               </p>
               <div className="mt-5 space-y-3 text-sm text-stone-600">
                 <p className="flex items-center gap-3">
-                  <GraduationCap className="size-4 text-brand-600" /> Tutor: Adaeze O.
+                  <GraduationCap className="size-4 text-brand-600" /> Mathematics tutor
                 </p>
                 <p className="flex items-center gap-3">
-                  <MapPin className="size-4 text-brand-600" /> Akoka Study Centre, Lagos
+                  <MapPin className="size-4 text-brand-600" /> LR 101, AFIT
                 </p>
                 <p className="flex items-center gap-3">
-                  <CalendarCheck className="size-4 text-brand-600" /> Tue & Thu, 4:00 pm
+                  <CalendarCheck className="size-4 text-brand-600" /> Mon & Wed, 4:00 pm
                 </p>
               </div>
               <div className="mt-6 flex items-end justify-between rounded-2xl bg-brand-50 p-4">
                 <span className="text-sm font-medium text-brand-900">Price</span>
                 <span>
-                  <span className="font-display text-2xl font-semibold text-brand-800">₦35,000</span>
+                  <span className="font-display text-2xl font-semibold text-brand-800">₦15,000</span>
                   <span className="text-sm text-brand-900/70"> / semester</span>
                 </span>
               </div>
             </div>
             <div className="absolute -bottom-14 left-8 hidden items-center gap-3 rounded-2xl border border-stone-200 bg-white px-4 py-3 shadow-lg sm:flex">
-              <MonitorPlay className="size-8 rounded-lg bg-sun-300/60 p-1.5 text-sun-600" />
+              <Building2 className="size-8 rounded-lg bg-sun-300/60 p-1.5 text-sun-600" />
               <div className="text-sm">
-                <p className="font-semibold text-stone-800">Online or in person</p>
-                <p className="text-stone-500">You choose how you learn</p>
+                <p className="font-semibold text-stone-800">Right on campus</p>
+                <p className="text-stone-500">Lecture rooms & halls at AFIT</p>
               </div>
             </div>
           </div>
@@ -180,7 +180,7 @@ export default function HomePage() {
           <div>
             <p className="text-sm font-semibold uppercase tracking-wider text-sun-600">About us</p>
             <h2 className="mt-3 font-display text-3xl font-semibold tracking-tight text-brand-950 sm:text-4xl">
-              Helping university students learn, not just cram.
+              Helping AFIT students learn, not just cram.
             </h2>
             <p className="mt-5 leading-relaxed text-stone-600">
               Learning Hub Africa was founded on a simple idea: with the right guidance, every
@@ -188,9 +188,8 @@ export default function HomePage() {
               together tutors who know each course inside out and the students who need them.
             </p>
             <p className="mt-4 leading-relaxed text-stone-600">
-              From first-year mathematics and sciences to engineering and management courses, our
-              tutorials are structured around your course outline and measured by one thing: how
-              well our students do.
+              From mathematics to physics and chemistry, our tutorials follow your AFIT course
+              outline and are measured by one thing: how well our students do.
             </p>
           </div>
           <div className="grid gap-5 sm:grid-cols-2">

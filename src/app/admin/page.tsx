@@ -18,16 +18,16 @@ export default async function AssignmentsPage({ searchParams }: { searchParams: 
       include: {
         assignments: {
           include: { tutor: true, location: true },
-          orderBy: [{ location: { isOnline: "desc" } }, { location: { city: "asc" } }],
+          orderBy: [{ location: { kind: "desc" } }, { location: { name: "asc" } }],
         },
       },
     }),
     prisma.tutor.findMany({ where: { active: true }, orderBy: { name: "asc" } }),
-    prisma.location.findMany({ where: { active: true }, orderBy: [{ isOnline: "desc" }, { city: "asc" }, { name: "asc" }] }),
+    prisma.location.findMany({ where: { active: true }, orderBy: [{ kind: "desc" }, { name: "asc" }] }),
   ]);
 
   const unassigned = courses.filter((c) => c.active && c.assignments.length === 0).length;
-  const locLabel = (l: { name: string; city: string; isOnline: boolean }) => (l.isOnline ? l.name : `${l.name} (${l.city})`);
+  const locLabel = (l: { name: string; kind: string }) => `${l.name} (${l.kind})`;
 
   return (
     <div>

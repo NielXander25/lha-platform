@@ -16,7 +16,7 @@ async function getCourse(slug: string) {
       assignments: {
         where: { tutor: { active: true }, location: { active: true } },
         include: { tutor: true, location: true },
-        orderBy: [{ location: { isOnline: "desc" } }, { location: { city: "asc" } }],
+        orderBy: [{ location: { kind: "desc" } }, { location: { name: "asc" } }],
       },
     },
   });
@@ -92,9 +92,7 @@ export default async function CoursePage({ params }: { params: Params }) {
                       <MapPin className="mt-0.5 size-4 shrink-0 text-brand-600" />
                       <span>
                         <span className="font-medium text-stone-800">{a.location.name}</span>
-                        {!a.location.isOnline && (
-                          <span className="block text-stone-500">{[a.location.address, a.location.city].filter(Boolean).join(", ")}</span>
-                        )}
+                        <span className="text-stone-500"> · {a.location.kind}, {SITE.schoolShort}</span>
                       </span>
                     </p>
                     {a.schedule && (

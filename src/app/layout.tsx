@@ -12,7 +12,7 @@ export const metadata: Metadata = {
     template: `%s · ${SITE.name}`,
   },
   description:
-    "Learning Hub Africa offers paid tutorials for university courses, taught by vetted tutors near campus and online.",
+    "Learning Hub Africa offers paid tutorials for Air Force Institute of Technology (AFIT) courses such as MTH 101, PHY 101 and CHM 101, held on campus.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

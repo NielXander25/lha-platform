@@ -9,8 +9,8 @@ export function SiteFooter() {
         <div className="space-y-3">
           <Logo light />
           <p className="max-w-xs text-sm text-brand-200/80">
-            Paid tutorials for university courses, with vetted tutors at study centres near campus
-            and online.
+            Paid tutorials for Air Force Institute of Technology (AFIT) students, held right on
+            campus.
           </p>
         </div>
         <div className="space-y-2 text-sm">
