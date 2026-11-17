@@ -14,8 +14,15 @@ export function whatsappLink(message?: string) {
   return `https://wa.me/${SITE.whatsapp}${text}`;
 }
 
-// What the tier prices are charged for.
-export const PRICE_UNIT = "per course";
+// What package prices are charged for.
+export const PRICE_UNIT = "per month";
+
+// Account students pay into by bank transfer. PLACEHOLDER: replace with the real account.
+export const BANK = {
+  bankName: "Bank name (to be confirmed)",
+  accountName: "Learning Hub Africa",
+  accountNumber: "0000000000",
+};
 
 export const LEVELS = ["100 Level", "200 Level", "300 Level", "400 Level", "500 Level"] as const;
 

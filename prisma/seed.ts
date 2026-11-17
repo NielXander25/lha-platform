@@ -41,10 +41,10 @@ const courses = [
     "Simplified notes, worked calculations and past questions covering the CHM 101 course outline."),
 ];
 
-const tiers = [
-  { name: "General class", ratio: "Group : 1 tutor", description: "Join the general class and learn alongside other students with one tutor.", price: 5000, sortOrder: 1 },
-  { name: "Two-to-one", ratio: "2 students : 1 tutor", description: "You and one other student share a tutor for closer attention.", price: 7000, sortOrder: 2 },
-  { name: "One-on-one", ratio: "1 student : 1 tutor", description: "Private tutorials: just you and the tutor, at your pace.", price: 10000, sortOrder: 3 },
+const packages = [
+  { code: "GENERAL", name: "General Group", ratio: "Group : 1 tutor", description: "Learn alongside other students taking the same course, with one tutor.", monthlyPrice: 5000, quarterlyPrice: 15000, capacity: 10, sortOrder: 1 },
+  { code: "SEMI_PRIVATE", name: "Semi-Private", ratio: "2 students : 1 tutor", description: "You and one other student share a tutor for closer attention.", monthlyPrice: 7000, quarterlyPrice: 21000, capacity: 2, sortOrder: 2 },
+  { code: "PRIVATE", name: "Private", ratio: "1 student : 1 tutor", description: "Private tutorials: just you and the tutor, at your pace.", monthlyPrice: 10000, quarterlyPrice: 30000, capacity: 1, sortOrder: 3 },
 ];
 
 const departments = [
@@ -84,14 +84,16 @@ async function main() {
     console.log("Database already has data. Run `npm run db:reset` to replace it with the starter data.");
     return;
   }
-  await prisma.pricingTier.createMany({ data: tiers });
+  // The migration already creates the packages; this only fills them in on a database without them.
+  await prisma.package.createMany({ data: packages, skipDuplicates: true });
   await prisma.department.createMany({ data: departments.map((name) => ({ name })) });
   // The 100 Level courses are general courses taken by every department.
   const allDepartments = (await prisma.department.findMany({ select: { id: true } })).map(({ id }) => ({ id }));
   for (const data of courses) {
     await prisma.course.create({ data: { ...data, departments: { connect: allDepartments } } });
   }
-  await prisma.tutor.createMany({ data: tutors });
+  // Starter tutors were added by staff, so they are already approved.
+  await prisma.tutor.createMany({ data: tutors.map((t) => ({ ...t, status: "APPROVED", approvedAt: new Date() })) });
   await prisma.location.createMany({ data: locations });
   for (const [code, email, locationName, schedule] of assignments) {
     const [c, t, l] = await Promise.all([

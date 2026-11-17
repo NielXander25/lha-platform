@@ -15,7 +15,7 @@ async function getCourse(slug: string) {
     include: {
       departments: { where: { active: true }, select: { name: true }, orderBy: { name: "asc" } },
       assignments: {
-        where: { tutor: { active: true }, location: { active: true } },
+        where: { tutor: { active: true, status: "APPROVED" }, location: { active: true } },
         include: { tutor: true, location: true },
         orderBy: [{ location: { kind: "desc" } }, { location: { name: "asc" } }],
       },
@@ -34,7 +34,7 @@ export default async function CoursePage({ params }: { params: Params }) {
   await connection();
   const [course, tiers] = await Promise.all([
     getCourse((await params).slug),
-    prisma.pricingTier.findMany({ orderBy: [{ sortOrder: "asc" }, { price: "asc" }] }),
+    prisma.package.findMany({ where: { active: true }, orderBy: { sortOrder: "asc" } }),
   ]);
   if (!course) notFound();
 
@@ -137,8 +137,8 @@ export default async function CoursePage({ params }: { params: Params }) {
         <aside className="lg:sticky lg:top-24 lg:self-start">
           <div className="rounded-3xl border border-slate-200 bg-white p-4 shadow-xl shadow-slate-900/5 sm:p-6">
             <h2 className="font-semibold text-slate-900">Choose your class size</h2>
-            <p className="mb-4 mt-1 text-sm text-slate-500">Prices are {PRICE_UNIT}. Pick an option to pay.</p>
-            <PricingOptions tiers={tiers} href={(t) => `/checkout?course=${course.slug}&tier=${t.id}`} />
+            <p className="mb-4 mt-1 text-sm text-slate-500">Prices are {PRICE_UNIT}. Pick one to register.</p>
+            <PricingOptions tiers={tiers} href={(t) => `/register/student?package=${t.code}&course=${course.slug}`} />
             <hr className="my-6 border-slate-100" />
             <h2 className="font-semibold text-slate-900">Have a question first?</h2>
             <p className="mt-1 text-sm text-slate-500">Reach out and we&apos;ll answer your questions and help you get started.</p>

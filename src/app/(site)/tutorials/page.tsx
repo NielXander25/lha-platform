@@ -20,7 +20,7 @@ export default async function TutorialsPage({ searchParams }: { searchParams: Se
   const level = one("level");
   const venue = one("venue");
 
-  const visibleAssignments = { tutor: { active: true }, location: { active: true } };
+  const visibleAssignments = { tutor: { active: true, status: "APPROVED" }, location: { active: true } };
 
   const [courses, departments, locations, tiers] = await Promise.all([
     prisma.course.findMany({
@@ -38,13 +38,13 @@ export default async function TutorialsPage({ searchParams }: { searchParams: Se
     }),
     prisma.department.findMany({ where: { active: true }, select: { name: true }, orderBy: { name: "asc" } }),
     prisma.location.findMany({
-      where: { active: true, assignments: { some: { tutor: { active: true }, course: { active: true } } } },
+      where: { active: true, assignments: { some: { tutor: { active: true, status: "APPROVED" }, course: { active: true } } } },
       select: { name: true },
       orderBy: [{ kind: "desc" }, { name: "asc" }],
     }),
-    prisma.pricingTier.findMany({ orderBy: [{ sortOrder: "asc" }, { price: "asc" }] }),
+    prisma.package.findMany({ where: { active: true }, orderBy: { sortOrder: "asc" } }),
   ]);
-  const fromPrice = tiers.length ? Math.min(...tiers.map((t) => t.price)) : undefined;
+  const fromPrice = tiers.length ? Math.min(...tiers.map((t) => t.monthlyPrice)) : undefined;
 
   const selected = { department, level, venue };
   const hrefWith = (key: keyof typeof selected, value?: string) => {
@@ -73,7 +73,7 @@ export default async function TutorialsPage({ searchParams }: { searchParams: Se
           <ul className="mt-3 grid gap-3 sm:grid-cols-3">
             {tiers.map((t) => (
               <li key={t.id} className="rounded-xl bg-white px-4 py-3">
-                <p className="font-display text-2xl font-semibold text-brand-800">{formatPrice(t.price)}</p>
+                <p className="font-display text-2xl font-semibold text-brand-800">{formatPrice(t.monthlyPrice)}</p>
                 <p className="text-sm font-semibold text-slate-800">{t.name}</p>
                 <p className="text-xs text-slate-500">{t.ratio}</p>
               </li>
