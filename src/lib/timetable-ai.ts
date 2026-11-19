@@ -27,7 +27,12 @@ export function timetableAiProvider(): Provider | null {
 export const timetableAiConfigured = () => timetableAiProvider() !== null;
 
 const CLAUDE_MODEL = "claude-opus-5-5";
-const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-3.8-flash";
+// Tried in order: when Google's free tier is busy (503/504/429) or a model isn't available,
+// the next one is tried. Override with GEMINI_MODEL as a comma-separated list.
+const GEMINI_MODELS = (process.env.GEMINI_MODEL || "gemini-3.8-flash,gemini-3.8-flash-lite,gemini-2.5-flash,gemini-2.5-flash-lite")
+  .split(",")
+  .map((m) => m.trim())
+  .filter(Boolean);
 
 // Reading gives up after this long so students are never left waiting; it must stay well under
 // the page's maxDuration (120 s) so the failure can be saved before the server stops the task.
@@ -162,22 +167,37 @@ async function readTimetable(bytes: Uint8Array, mimeType: string): Promise<{ res
     // Gemini supports a subset of JSON Schema; drop the "$schema" marker it doesn't list.
     const schema = z.toJSONSchema(ExtractionSchema) as Record<string, unknown>;
     delete schema.$schema;
-    const response = await ai.models.generateContent({
-      model: GEMINI_MODEL,
-      contents: [{ role: "user", parts: [{ inlineData: { mimeType, data } }, { text: INSTRUCTION }] }],
-      config: {
-        // Reading a timetable doesn't need long reasoning; keeping it low makes replies much faster.
-        thinkingConfig: { thinkingLevel: ThinkingLevel.LOW },
-        httpOptions: { timeout: READ_TIMEOUT_MS },
-        systemInstruction: SYSTEM,
-        responseMimeType: "application/json",
-        responseJsonSchema: schema,
-      },
-    });
-    // Gemini constrains the JSON to the schema; validate anyway before trusting it.
-    const parsed = ExtractionSchema.safeParse(JSON.parse(response.text ?? "null"));
-    if (!parsed.success) throw new Error(`Gemini output didn't match the schema: ${parsed.error.issues[0]?.message}`);
-    return { result: parsed.data, model: response.modelVersion ?? GEMINI_MODEL };
+    const deadline = Date.now() + READ_TIMEOUT_MS - 2_000;
+    const errors: string[] = [];
+    for (const [i, model] of GEMINI_MODELS.entries()) {
+      const left = deadline - Date.now();
+      if (left < 5_000) break;
+      // Give the first (best) model the most time, but always leave room for a backup.
+      const timeout = i === 0 ? Math.min(20_000, left) : Math.min(15_000, left);
+      try {
+        const response = await ai.models.generateContent({
+          model,
+          contents: [{ role: "user", parts: [{ inlineData: { mimeType, data } }, { text: INSTRUCTION }] }],
+          config: {
+            // Reading a timetable doesn't need long reasoning; keeping it low makes replies much faster.
+            thinkingConfig: model.includes("2.5") ? { thinkingBudget: 0 } : { thinkingLevel: ThinkingLevel.LOW },
+            httpOptions: { timeout },
+            systemInstruction: SYSTEM,
+            responseMimeType: "application/json",
+            responseJsonSchema: schema,
+          },
+        });
+        // Gemini constrains the JSON to the schema; validate anyway before trusting it.
+        const parsed = ExtractionSchema.safeParse(JSON.parse(response.text ?? "null"));
+        if (!parsed.success) throw new Error(`output didn't match the schema: ${parsed.error.issues[0]?.message}`);
+        return { result: parsed.data, model: response.modelVersion ?? model };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        errors.push(`${model}: ${message.slice(0, 160)}`);
+        console.warn("Gemini model failed, trying the next one", { model, error: message.slice(0, 200) });
+      }
+    }
+    throw new Error(`All Gemini models failed. ${errors.join(" | ")}`);
   }
 
   throw new Error("No AI provider configured");
