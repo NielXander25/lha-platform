@@ -7,7 +7,8 @@ import { Submit } from "@/components/forms";
 import { fieldClass } from "@/lib/ui";
 import { currentStudent } from "@/lib/current";
 import { prisma } from "@/lib/prisma";
-import { DAYS, DAYS_SHORT, formatTime } from "@/lib/schedule";
+import { DAYS, formatTime } from "@/lib/schedule";
+import { normaliseCourseCode } from "@/lib/course-learning";
 import { readingState, timetableAiConfigured } from "@/lib/timetable-ai";
 
 type SearchParams = Promise<{ [key: string]: string | string[] | undefined }>;
@@ -119,26 +120,47 @@ export default async function TimetableStep({ searchParams }: { searchParams: Se
         </p>
 
         {entries.length > 0 ? (
-          <ul className="mt-4 divide-y divide-slate-100 rounded-xl border border-slate-200">
-            {entries.map((e) => {
-              const check = e.source === "EXTRACTED" && (e.confidence ?? 1) < 0.8;
+          <div className="mt-4 space-y-4">
+            {DAYS.map((dayName, day) => {
+              const list = entries.filter((e) => e.day === day);
+              if (!list.length) return null;
               return (
-                <li key={e.id} className={`flex items-center gap-3 px-4 py-3 text-sm ${check ? "bg-amber-50" : ""}`}>
-                  <span className="w-10 shrink-0 font-semibold text-brand-800">{DAYS_SHORT[e.day]}</span>
-                  <span className="w-36 shrink-0 text-slate-600">{formatTime(e.startMin)} – {formatTime(e.endMin)}</span>
-                  <span className="min-w-0 flex-1">
-                    <span className="font-medium text-slate-900">{e.courseCode}</span>
-                    <span className="text-slate-500">{[e.activityType, e.venue].filter(Boolean).map((x) => ` · ${x}`).join("")}</span>
-                    {check && <span className="ml-2"><StatusBadge label="Check this" tone="warn" /></span>}
-                  </span>
-                  <form action={deleteTimetableEntry}>
-                    <input type="hidden" name="id" value={e.id} />
-                    <button aria-label={`Remove ${e.courseCode}`} className="text-rose-600 hover:text-rose-700"><Trash2 className="size-4" /></button>
-                  </form>
-                </li>
+                <section key={dayName}>
+                  <h3 className="mb-2 text-xs font-bold uppercase tracking-wider text-brand-700">{dayName}</h3>
+                  <ul className="space-y-2">
+                    {list.map((e) => {
+                      const check = e.source === "EXTRACTED" && (e.confidence ?? 1) < 0.8;
+                      const code = normaliseCourseCode(e.courseCode) ?? e.courseCode;
+                      return (
+                        <li
+                          key={e.id}
+                          className={`flex items-start gap-3 rounded-xl border px-4 py-3 ${check ? "border-amber-300 bg-amber-50" : "border-slate-200 bg-white"}`}
+                        >
+                          <div className="min-w-0 flex-1">
+                            <p className="font-semibold text-slate-900">
+                              {code}
+                              {check && <span className="ml-2 align-middle"><StatusBadge label="Check this" tone="warn" /></span>}
+                            </p>
+                            {e.courseTitle && e.courseTitle !== code && <p className="text-sm text-slate-700">{e.courseTitle}</p>}
+                            <p className="mt-1 text-sm text-slate-500">
+                              {formatTime(e.startMin)} – {formatTime(e.endMin)}
+                              {[e.activityType, e.venue].filter(Boolean).map((x) => ` · ${x}`).join("")}
+                            </p>
+                          </div>
+                          <form action={deleteTimetableEntry}>
+                            <input type="hidden" name="id" value={e.id} />
+                            <button aria-label={`Remove ${code} on ${dayName}`} className="rounded-lg p-1.5 text-rose-600 hover:bg-rose-50">
+                              <Trash2 className="size-4" />
+                            </button>
+                          </form>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </section>
               );
             })}
-          </ul>
+          </div>
         ) : (
           <p className="mt-4 text-sm text-slate-500">{processing ? "Your lectures will appear here shortly." : "No lectures yet."}</p>
         )}

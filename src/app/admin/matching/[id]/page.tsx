@@ -34,10 +34,21 @@ export default async function AllocationDetail({ params, searchParams }: { param
   });
   if (!a) notFound();
   const decision = a.decision as Decision | null;
-  const tutors = await prisma.tutor.findMany({
-    where: { status: "APPROVED", active: true, courses: { some: { courseId: a.courseId, approved: true } } },
+  // Any approved tutor can be chosen; the label says whether they're ready to be matched.
+  const allTutors = await prisma.tutor.findMany({
+    where: { status: "APPROVED", active: true },
+    include: { courses: { where: { courseId: a.courseId } }, user: { select: { availability: { where: { kind: "AVAILABLE" }, select: { id: true } } } } },
     orderBy: { name: "asc" },
   });
+  const tutors = allTutors
+    .map((t) => ({
+      id: t.id,
+      name: t.name,
+      teaches: t.courses.some((c) => c.approved),
+      hasTimes: Boolean(t.user?.availability.length),
+    }))
+    .sort((x, y) => Number(y.hasTimes) - Number(x.hasTimes) || Number(y.teaches) - Number(x.teaches));
+  const courseCode = a.course.code ?? a.course.title;
   const waiting = ["AWAITING_ALLOCATION", "CONFLICT_DETECTED"].includes(a.status);
 
   return (
@@ -121,17 +132,32 @@ export default async function AllocationDetail({ params, searchParams }: { param
       {user.role === "ADMIN" && waiting && (
         <Panel>
           <h2 className="font-semibold text-slate-900">Assign a tutor by hand</h2>
-          <p className="mt-1 text-sm text-slate-500">The engine still checks every rule and picks the times. The tutor then confirms as usual.</p>
+          <p className="mt-1 text-sm text-slate-500">
+            Pick a tutor and we find a time that suits both of them. If the tutor isn&apos;t set up for {courseCode} yet, this approves them for it.
+            The tutor then accepts on their dashboard.
+          </p>
           {tutors.length ? (
             <form action={manualAssign} className="mt-3 flex flex-wrap gap-2">
               <input type="hidden" name="allocationId" value={a.id} />
-              <select name="tutorId" required className={`${inputClass} sm:w-72`}>
-                {tutors.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+              <select name="tutorId" required className={`${inputClass} sm:w-96`}>
+                {tutors.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.name}
+                    {!t.hasTimes ? " (hasn't set available times)" : t.teaches ? ` (teaches ${courseCode})` : ` (will be approved for ${courseCode})`}
+                  </option>
+                ))}
               </select>
               <button className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white">Assign</button>
             </form>
           ) : (
-            <p className="mt-3 text-sm text-amber-700">No approved tutor teaches this course yet. Approve a tutor&apos;s competency first.</p>
+            <p className="mt-3 text-sm text-amber-700">
+              There are no approved tutors yet. Ask tutors to apply at /register/tutor, then approve them under Tutors &amp; approvals.
+            </p>
+          )}
+          {tutors.length > 0 && tutors.every((t) => !t.hasTimes) && (
+            <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">
+              None of your tutors have set their available times, so no class time can be found yet. Tutors set times by logging in and opening Availability.
+            </p>
           )}
         </Panel>
       )}

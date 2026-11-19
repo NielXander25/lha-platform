@@ -403,8 +403,30 @@ export async function manualAssign(formData: FormData) {
   const user = await requireAdmin();
   const allocationId = String(formData.get("allocationId") ?? "");
   const tutorId = String(formData.get("tutorId") ?? "");
+  const alloc = await prisma.allocation.findUniqueOrThrow({ where: { id: allocationId }, include: { course: true } });
+  const tutor = await prisma.tutor.findFirst({ where: { id: tutorId, status: "APPROVED", active: true } });
+  if (!tutor) redirect(`/admin/matching/${allocationId}?error=${encodeURIComponent("Choose an approved tutor.")}`);
+  // Choosing a tutor for a course they aren't approved for yet approves them for it, in one step.
+  const link = await prisma.tutorCourse.findUnique({ where: { tutorId_courseId: { tutorId, courseId: alloc.courseId } } });
+  if (!link?.approved) {
+    await prisma.tutorCourse.upsert({
+      where: { tutorId_courseId: { tutorId, courseId: alloc.courseId } },
+      update: { approved: true },
+      create: { tutorId, courseId: alloc.courseId, approved: true },
+    });
+  }
   const { assignManually } = await import("@/lib/matching/run");
   const result = await assignManually(allocationId, tutorId, user.id);
+  if (!link?.approved) {
+    if (result.ok) {
+      await audit({ actorId: user.id, action: "tutor.course_approved", entity: "Tutor", entityId: tutorId, details: { courseId: alloc.courseId, via: "manual assignment" } });
+    } else {
+      // The assignment didn't go through, so leave the tutor's courses as they were.
+      const key = { tutorId_courseId: { tutorId, courseId: alloc.courseId } };
+      if (link) await prisma.tutorCourse.update({ where: key, data: { approved: false } });
+      else await prisma.tutorCourse.delete({ where: key });
+    }
+  }
   revalidatePath("/admin", "layout");
   redirect(`/admin/matching/${allocationId}?${result.ok ? "ok" : "error"}=${encodeURIComponent(result.message)}`);
 }
