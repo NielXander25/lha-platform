@@ -1,19 +1,32 @@
 import "server-only";
 import Anthropic from "@anthropic-ai/sdk";
 import { betaZodOutputFormat } from "@anthropic-ai/sdk/helpers/beta/zod";
+import { GoogleGenAI } from "@google/genai";
 import { z } from "zod";
 import { audit } from "@/lib/audit";
 import { prisma } from "@/lib/prisma";
 import { DAYS, parseTime } from "@/lib/schedule";
 import { refreshStudentStatus } from "@/lib/students";
 
-// Reads an uploaded university timetable (PDF or image) with Claude and turns it into
+// Reads an uploaded university timetable (PDF or image) with an AI model and turns it into
 // draft timetable entries. Students always review and confirm the result: extraction is
 // a starting point, never trusted on its own.
+//
+// Provider: Claude when ANTHROPIC_API_KEY is set, otherwise Google Gemini when
+// GEMINI_API_KEY is set (Gemini has a free tier). With neither, students enter lectures by hand.
 
-export const timetableAiConfigured = () => Boolean(process.env.ANTHROPIC_API_KEY);
+type Provider = "anthropic" | "gemini";
 
-const MODEL = "claude-opus-5-5";
+export function timetableAiProvider(): Provider | null {
+  if (process.env.ANTHROPIC_API_KEY) return "anthropic";
+  if (process.env.GEMINI_API_KEY) return "gemini";
+  return null;
+}
+
+export const timetableAiConfigured = () => timetableAiProvider() !== null;
+
+const CLAUDE_MODEL = "claude-opus-5-5";
+const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-3.8-flash";
 
 // A reading that hasn't finished after this long has failed silently (e.g. the server stopped).
 const STUCK_AFTER_MS = 3 * 60 * 1000;
@@ -57,27 +70,7 @@ export async function extractTimetable(uploadId: string) {
   if (!upload) return;
 
   try {
-    const data = Buffer.from(upload.data).toString("base64");
-    const file: Anthropic.Beta.BetaContentBlockParam =
-      upload.mimeType === "application/pdf"
-        ? { type: "document", source: { type: "base64", media_type: "application/pdf", data } }
-        : { type: "image", source: { type: "base64", media_type: upload.mimeType as "image/png" | "image/jpeg", data } };
-
-    const client = new Anthropic();
-    const response = await client.beta.messages.parse({
-      model: MODEL,
-      max_tokens: 16000,
-      betas: ["server-side-fallback-2026-07-01"],
-      fallbacks: "default",
-      output_config: { effort: "medium", format: betaZodOutputFormat(ExtractionSchema) },
-      system: SYSTEM,
-      messages: [{ role: "user", content: [file, { type: "text", text: "Extract every class meeting from this timetable." }] }],
-    });
-
-    if (response.stop_reason === "refusal" || !response.parsed_output) {
-      throw new Error(`No usable extraction (stop_reason: ${response.stop_reason})`);
-    }
-    const result = response.parsed_output;
+    const { result, model } = await readTimetable(upload.data, upload.mimeType);
 
     // Keep only entries with sensible times; anything else the student adds by hand.
     const entries = result.entries.flatMap((e) => {
@@ -110,11 +103,65 @@ export async function extractTimetable(uploadId: string) {
       }),
       prisma.studentProfile.update({ where: { id: upload.studentId }, data: { timetableConfirmed: false } }),
     ]);
-    await audit({ action: "timetable.extracted", entity: "TimetableUpload", entityId: upload.id, details: { entries: entries.length, readable: result.readable, model: response.model } });
+    await audit({ action: "timetable.extracted", entity: "TimetableUpload", entityId: upload.id, details: { entries: entries.length, readable: result.readable, model } });
   } catch (error) {
     console.error("Timetable extraction failed", uploadId, error);
     await prisma.timetableUpload.update({ where: { id: uploadId }, data: { status: "FAILED" } });
     await audit({ action: "timetable.extraction_failed", entity: "TimetableUpload", entityId: uploadId, details: { error: String(error).slice(0, 300) } });
   }
   await refreshStudentStatus(upload.studentId);
+}
+
+type Extraction = z.infer<typeof ExtractionSchema>;
+const INSTRUCTION = "Extract every class meeting from this timetable.";
+
+async function readTimetable(bytes: Uint8Array, mimeType: string): Promise<{ result: Extraction; model: string }> {
+  const data = Buffer.from(bytes).toString("base64");
+  const provider = timetableAiProvider();
+
+  if (provider === "anthropic") {
+    const file: Anthropic.Beta.BetaContentBlockParam =
+      mimeType === "application/pdf"
+        ? { type: "document", source: { type: "base64", media_type: "application/pdf", data } }
+        : { type: "image", source: { type: "base64", media_type: mimeType as "image/png" | "image/jpeg", data } };
+    const response = await new Anthropic().beta.messages.parse({
+      model: CLAUDE_MODEL,
+      max_tokens: 16000,
+      betas: ["server-side-fallback-2026-07-01"],
+      fallbacks: "default",
+      output_config: { effort: "medium", format: betaZodOutputFormat(ExtractionSchema) },
+      system: SYSTEM,
+      messages: [{ role: "user", content: [file, { type: "text", text: INSTRUCTION }] }],
+    });
+    if (response.stop_reason === "refusal" || !response.parsed_output) {
+      throw new Error(`No usable extraction (stop_reason: ${response.stop_reason})`);
+    }
+    return { result: response.parsed_output, model: response.model };
+  }
+
+  if (provider === "gemini") {
+    const ai = new GoogleGenAI({
+      apiKey: process.env.GEMINI_API_KEY,
+      // Optional override, used only for local testing against a stand-in server.
+      ...(process.env.GEMINI_BASE_URL && { httpOptions: { baseUrl: process.env.GEMINI_BASE_URL } }),
+    });
+    // Gemini supports a subset of JSON Schema; drop the "$schema" marker it doesn't list.
+    const schema = z.toJSONSchema(ExtractionSchema) as Record<string, unknown>;
+    delete schema.$schema;
+    const response = await ai.models.generateContent({
+      model: GEMINI_MODEL,
+      contents: [{ role: "user", parts: [{ inlineData: { mimeType, data } }, { text: INSTRUCTION }] }],
+      config: {
+        systemInstruction: SYSTEM,
+        responseMimeType: "application/json",
+        responseJsonSchema: schema,
+      },
+    });
+    // Gemini constrains the JSON to the schema; validate anyway before trusting it.
+    const parsed = ExtractionSchema.safeParse(JSON.parse(response.text ?? "null"));
+    if (!parsed.success) throw new Error(`Gemini output didn't match the schema: ${parsed.error.issues[0]?.message}`);
+    return { result: parsed.data, model: response.modelVersion ?? GEMINI_MODEL };
+  }
+
+  throw new Error("No AI provider configured");
 }

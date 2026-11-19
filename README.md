@@ -9,8 +9,8 @@ Built in milestones from the Paid Tutorial Management System specification.
 - **Accounts & roles**: students, tutors, administrators, finance officers and support officers, with
   hashed passwords, 14-day sessions, login lockout after repeated failures and role checks on every page and action.
 - **Student registration**: account → academic profile → courses, package (monthly or 3 months) and
-  teaching mode → required timetable upload (read automatically by Claude when `ANTHROPIC_API_KEY` is
-  set, then reviewed and corrected by the student) → weekly availability → payment.
+  teaching mode → required timetable upload (read automatically by AI, Claude if `ANTHROPIC_API_KEY` is
+  set or Google Gemini if `GEMINI_API_KEY` is set, then reviewed and corrected by the student) → weekly availability → payment.
   Each student gets an ID (e.g. `LHA-26-0001`) and a registration status.
 - **Tutor registration**: profile, qualifications, credential uploads, courses, teaching mode, workload
   and weekly availability. Admins approve the tutor and each course competency.
