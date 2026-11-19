@@ -176,8 +176,13 @@ export async function confirmTimetable() {
     prisma.timetableUpload.count({ where: { studentId: student.id, status: "PROCESSING" } }),
   ]);
   if (uploads === 0) back("/portal/timetable", { error: "We haven't received your timetable yet. Tap \"Tap to choose your timetable\" above and pick the file; it uploads straight away." });
-  if (processing > 0) back("/portal/timetable", { error: "We're still reading your timetable. Please wait a moment." });
-  if (count === 0) back("/portal/timetable", { error: "Add at least one lecture before confirming." });
+  if (count === 0) {
+    back("/portal/timetable", {
+      error: processing > 0 ? "We're still reading your timetable. Wait a moment, or add your lectures by hand below." : "Add at least one lecture before confirming.",
+    });
+  }
+  // Confirming with typed lectures stops any reading still in progress, so it can't overwrite them.
+  if (processing > 0) await prisma.timetableUpload.updateMany({ where: { studentId: student.id, status: "PROCESSING" }, data: { status: "UPLOADED" } });
   await prisma.studentProfile.update({ where: { id: student.id }, data: { timetableConfirmed: true } });
   await audit({ actorId: user.id, action: "timetable.confirmed", entity: "StudentProfile", entityId: student.id, details: { entries: count } });
   await refreshStudentStatus(student.id);

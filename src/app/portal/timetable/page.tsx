@@ -58,7 +58,11 @@ export default async function TimetableStep({ searchParams }: { searchParams: Se
             {processing && (
               <Notice>
                 <span className="flex items-center gap-2">
-                  <Loader2 className="size-4 animate-spin" /> Reading <strong>{latest.fileName}</strong>… This usually takes under a minute, and this page updates by itself.
+                  <Loader2 className="size-4 shrink-0 animate-spin" />
+                  <span>
+                    Reading your timetable… usually under a minute, and this page updates by itself. In a hurry? Add your lectures by hand
+                    below and continue; you don&apos;t have to wait.
+                  </span>
                 </span>
               </Notice>
             )}
@@ -76,7 +80,7 @@ export default async function TimetableStep({ searchParams }: { searchParams: Se
             )}
             {(latest.status === "FAILED" || stuck) && (
               <Notice tone="warning">
-                We couldn&apos;t read this file automatically. Please add your lectures by hand below, or upload a clearer copy.
+                Automatic reading didn&apos;t work this time. Please add your lectures by hand below; it only takes a minute.
                 {ai && (
                   <form action={retryTimetableReading} className="mt-2">
                     <input type="hidden" name="id" value={latest.id} />
@@ -131,7 +135,7 @@ export default async function TimetableStep({ searchParams }: { searchParams: Se
           <p className="mt-4 text-sm text-slate-500">{processing ? "Your lectures will appear here shortly." : "No lectures yet."}</p>
         )}
 
-        <details className="mt-5" open={!ai || latest?.status === "FAILED" || stuck}>
+        <details className="mt-5" open={!ai || latest?.status === "FAILED" || stuck || processing}>
           <summary className="cursor-pointer text-sm font-semibold text-brand-700">Add a lecture by hand</summary>
           <form action={addTimetableEntry} className="mt-3 grid gap-3 sm:grid-cols-6">
             <input name="courseCode" required placeholder="Code, e.g. MTH 101" className={`${fieldClass} sm:col-span-2`} aria-label="Course code" />
