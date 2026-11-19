@@ -2,7 +2,7 @@ import Link from "next/link";
 import { rejectTransfer, verifyTransfer } from "../actions";
 import { PageHeader, firstString } from "@/components/admin-ui";
 import { FlashMessage, Panel, StatusBadge } from "@/components/portal-ui";
-import { fieldClass } from "@/components/forms";
+import { fieldClass } from "@/lib/ui";
 import { requireUser } from "@/lib/auth";
 import { PAYMENT_STATUS_LABELS } from "@/lib/billing";
 import { prisma } from "@/lib/prisma";

@@ -6,6 +6,7 @@ import { audit } from "@/lib/audit";
 import { currentTutor } from "@/lib/current";
 import { prisma } from "@/lib/prisma";
 import { slotsToRanges, SLOT_MINUTES } from "@/lib/schedule";
+import { MAX_UPLOAD_BYTES } from "@/lib/upload-limits";
 
 function back(path: string, msg: { ok?: string; error?: string }): never {
   redirect(`${path}?${new URLSearchParams(msg as Record<string, string>)}`);
@@ -38,7 +39,6 @@ export async function saveTutorProfile(fd: FormData) {
   redirect("/tutor/courses");
 }
 
-const MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
 const SIGNATURES: Record<string, number[]> = {
   "application/pdf": [0x25, 0x50, 0x44, 0x46],
   "image/png": [0x89, 0x50, 0x4e, 0x47],
@@ -50,7 +50,7 @@ export async function uploadCredential(fd: FormData) {
   const file = fd.get("file");
   if (!(file instanceof File) || file.size === 0) back("/tutor/profile", { error: "Choose a file to upload." });
   const f = file as File;
-  if (f.size > MAX_UPLOAD_BYTES) back("/tutor/profile", { error: "That file is larger than 5 MB." });
+  if (f.size > MAX_UPLOAD_BYTES) back("/tutor/profile", { error: "That file is larger than 4 MB." });
   const bytes = Buffer.from(await f.arrayBuffer());
   const type = Object.entries(SIGNATURES).find(([, sig]) => sig.every((b, i) => bytes[i] === b))?.[0];
   if (!type) back("/tutor/profile", { error: "Upload a PDF, JPG or PNG file." });
@@ -103,5 +103,13 @@ export async function saveTutorAvailability(fd: FormData) {
       ],
     }),
   ]);
+  (await import("@/lib/matching/respond")).scheduleMatching();
   back("/tutor", { ok: "Availability saved." });
+}
+
+export async function respondToClass(fd: FormData) {
+  const { user, tutor } = await currentTutor();
+  const { tutorRespond } = await import("@/lib/matching/respond");
+  const result = await tutorRespond(String(fd.get("classId")), tutor.id, fd.get("accept") === "true", user.id);
+  back("/tutor", result.ok ? { ok: result.message } : { error: result.message });
 }

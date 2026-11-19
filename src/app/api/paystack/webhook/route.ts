@@ -21,7 +21,8 @@ export async function POST(request: NextRequest) {
   const reference = event.data?.reference ?? event.data?.transaction_reference;
 
   if (event.event === "charge.success" && reference) {
-    await confirmPaystackReference(reference);
+    const outcome = await confirmPaystackReference(reference);
+    if (outcome.result === "success" && outcome.activated) (await import("@/lib/matching/respond")).scheduleMatching();
   } else if (reference && (event.event === "refund.processed" || event.event === "charge.dispute.create")) {
     // Money left our account: flag the payment for finance. Access changes are decided by staff.
     const payment = await prisma.payment.findUnique({ where: { reference } });

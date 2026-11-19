@@ -1,10 +1,9 @@
 "use client";
 
 import { useFormStatus } from "react-dom";
+import { fieldClass } from "@/lib/ui";
 import { cn } from "@/lib/utils";
 
-export const fieldClass =
-  "block w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20";
 
 export function TextField({
   label,

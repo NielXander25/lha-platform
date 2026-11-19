@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { reviewTutor, setCourseCompetency, toggleTutor } from "../../actions";
 import { FlashMessage, one, Panel, StatusBadge } from "@/components/portal-ui";
-import { fieldClass } from "@/components/forms";
+import { fieldClass } from "@/lib/ui";
 import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { TUTOR_STATUS } from "@/lib/tutors";

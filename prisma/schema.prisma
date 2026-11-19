@@ -31,6 +31,8 @@ model Course {
   createdAt         DateTime        @default(now())
   updatedAt         DateTime        @updatedAt
   assignments       Assignment[]
+  classes           TutorialClass[]
+  allocations       Allocation[]
 }
 
 // An engineering department, e.g. "Mechatronics Engineering".
@@ -72,6 +74,7 @@ model Tutor {
   courses     TutorCourse[]
   credentials TutorCredential[]
   assignments Assignment[]
+  classes     TutorialClass[]
 
   @@index([status])
 }
@@ -102,12 +105,13 @@ model TutorCredential {
 
 // Where a tutorial holds on campus, e.g. "LR 101" or "Hall C1".
 model Location {
-  id          String       @id @default(cuid())
-  name        String       @unique
-  kind        String       @default("Lecture room") // e.g. Lecture room, Hall
-  active      Boolean      @default(true)
-  createdAt   DateTime     @default(now())
+  id          String          @id @default(cuid())
+  name        String          @unique
+  kind        String          @default("Lecture room") // e.g. Lecture room, Hall
+  active      Boolean         @default(true)
+  createdAt   DateTime        @default(now())
   assignments Assignment[]
+  classes     TutorialClass[]
 }
 
 // A tutor teaching a course at a location. Visitors see these on the course page.
@@ -187,6 +191,8 @@ model StudentProfile {
   timetableEntries TimetableEntry[]
   subscriptions    Subscription[]
   invoices         Invoice[]
+  classMemberships ClassMember[]
+  allocations      Allocation[]
 
   @@index([status])
 }
@@ -274,6 +280,7 @@ model Package {
 
   students      StudentProfile[]
   subscriptions Subscription[]
+  classes       TutorialClass[]
 }
 
 model Subscription {
@@ -350,4 +357,86 @@ model AuditLog {
 
   @@index([entity, entityId])
   @@index([createdAt])
+}
+
+// ---------- Matching & classes ----------
+
+// A tutorial class: one tutor teaching one course to 1 (private), 2 (semi-private) or a group
+// of students, at fixed weekly session times.
+model TutorialClass {
+  id          String    @id @default(cuid())
+  courseId    String
+  packageId   String
+  tutorId     String
+  locationId  String? // venue for in-person classes
+  mode        String // IN_PERSON | ONLINE
+  status      String    @default("AWAITING_TUTOR") // AWAITING_TUTOR | AWAITING_STUDENTS | CONFIRMED | CANCELLED
+  manual      Boolean   @default(false) // assigned by staff rather than the matching engine
+  confirmedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  course      Course         @relation(fields: [courseId], references: [id], onDelete: Restrict)
+  package     Package        @relation(fields: [packageId], references: [id], onDelete: Restrict)
+  tutor       Tutor          @relation(fields: [tutorId], references: [id], onDelete: Restrict)
+  location    Location?      @relation(fields: [locationId], references: [id], onDelete: SetNull)
+  sessions    ClassSession[]
+  members     ClassMember[]
+  allocations Allocation[]
+
+  @@index([status])
+  @@index([tutorId])
+}
+
+// A weekly recurring session of a class. Times are minutes from midnight; day 0 = Monday.
+model ClassSession {
+  id       String @id @default(cuid())
+  classId  String
+  day      Int
+  startMin Int
+  endMin   Int
+
+  class TutorialClass @relation(fields: [classId], references: [id], onDelete: Cascade)
+}
+
+model ClassMember {
+  classId     String
+  studentId   String
+  status      String    @default("PROPOSED") // PROPOSED | ACCEPTED | DECLINED
+  respondedAt DateTime?
+
+  class   TutorialClass  @relation(fields: [classId], references: [id], onDelete: Cascade)
+  student StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@id([classId, studentId])
+}
+
+// One student's request for one course, and what the matching engine decided about it.
+model Allocation {
+  id               String   @id @default(cuid())
+  studentId        String
+  courseId         String
+  classId          String?
+  status           String   @default("AWAITING_ALLOCATION") // AWAITING_ALLOCATION | CONFLICT_DETECTED | AWAITING_TUTOR_CONFIRMATION | AWAITING_STUDENT_CONFIRMATION | CONFIRMED
+  reason           String? // short explanation shown to staff when unmatched
+  score            Float?
+  decision         Json? // candidates considered, scores and rejection reasons
+  excludedTutorIds String[] @default([]) // tutors who declined this request
+  excludedClassIds String[] @default([]) // classes the student declined
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  student StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  course  Course         @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  class   TutorialClass? @relation(fields: [classId], references: [id], onDelete: SetNull)
+
+  @@unique([studentId, courseId])
+  @@index([status])
+}
+
+// Admin-editable settings, e.g. matching weights.
+model Setting {
+  key       String   @id
+  value     Json
+  updatedAt DateTime @updatedAt
 }

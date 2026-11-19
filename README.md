@@ -20,7 +20,15 @@ Built in milestones from the Paid Tutorial Management System specification.
 - **Staff dashboard**: overview figures, students, tutor approvals, payments, packages, courses,
   departments, locations, staff accounts and an audit log.
 
-**Next:** the student–tutor allocation engine, class scheduling,
+**Milestone 2 (matching):** a constraint-based engine matches paid students with approved tutors. Hard
+rules first (course approval, verified subscription, shared free time around lectures and other classes,
+tutor workload, teaching mode, a free venue for in-person classes, package size: 1:1, exactly 2:1, or a
+group up to capacity), then weighted ranking (subject 35, schedule 30, experience 15, needs 10, workload
+10; editable). Tutors accept, then students accept; declines re-queue the request. Runs automatically
+after payments, approvals and availability changes, or on demand; every decision is logged with scores
+and rejection reasons, and staff can assign a tutor by hand (rules still enforced).
+
+**Next:** class scheduling,
 calendar sync, notifications (email/push/WhatsApp), complaints and feedback, and reports.
 
 ## Stack

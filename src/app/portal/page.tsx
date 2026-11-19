@@ -1,20 +1,33 @@
 import Link from "next/link";
+import { respondToProposal } from "./actions";
+import { ClassCard, RespondButtons } from "@/components/class-card";
 import { currentStudent } from "@/lib/current";
 import { prisma } from "@/lib/prisma";
-import { Checklist, Notice, Panel, StatusBadge } from "@/components/portal-ui";
+import { Checklist, FlashMessage, Notice, one, Panel, StatusBadge } from "@/components/portal-ui";
 import { ONBOARDING_STEPS, STUDENT_STATUS_LABELS, studentProgress } from "@/lib/students";
 import { formatPrice } from "@/lib/utils";
 
 const dateFmt = new Intl.DateTimeFormat("en-NG", { dateStyle: "medium", timeZone: "Africa/Lagos" });
 
-export default async function PortalHome() {
+type SearchParams = Promise<{ [key: string]: string | string[] | undefined }>;
+
+export default async function PortalHome({ searchParams }: { searchParams: SearchParams }) {
   const { user, student } = await currentStudent();
-  const [{ done, pendingPayment }, subscription, courses, pkg] = await Promise.all([
+  const params = await searchParams;
+  const [{ done, pendingPayment }, subscription, courses, pkg, memberships, allocations] = await Promise.all([
     studentProgress(student.id),
     prisma.subscription.findFirst({ where: { studentId: student.id, status: "ACTIVE" }, orderBy: { endsAt: "desc" }, include: { package: true } }),
     prisma.studentCourse.findMany({ where: { studentId: student.id }, include: { course: true } }),
     student.packageId ? prisma.package.findUnique({ where: { id: student.packageId } }) : null,
+    prisma.classMember.findMany({
+      where: { studentId: student.id, status: { not: "DECLINED" }, class: { status: { not: "CANCELLED" } } },
+      include: { class: { include: { course: true, package: true, tutor: true, location: true, sessions: true, members: { include: { student: { include: { user: { select: { name: true } } } } } } } } },
+    }),
+    prisma.allocation.findMany({ where: { studentId: student.id }, include: { course: true } }),
   ]);
+  const toConfirm = memberships.filter((m) => m.status === "PROPOSED" && m.class.status !== "AWAITING_TUTOR");
+  const others = memberships.filter((m) => !toConfirm.includes(m));
+  const waiting = allocations.filter((a) => ["AWAITING_ALLOCATION", "CONFLICT_DETECTED"].includes(a.status));
 
   const status = student.status;
   const tone = status === "ACTIVE" || status === "AWAITING_ALLOCATION" || status === "ALLOCATED" ? "good" : status === "SUSPENDED" ? "bad" : "warn";
@@ -30,7 +43,17 @@ export default async function PortalHome() {
         </div>
       </header>
 
-      {status === "AWAITING_ALLOCATION" && (
+      <FlashMessage ok={one(params.ok)} error={one(params.error)} />
+      {toConfirm.length > 0 && (
+        <Panel className="border-brand-300 ring-2 ring-brand-500/10">
+          <h2 className="font-semibold text-slate-900">Your tutor is ready. Please confirm</h2>
+          <p className="mt-1 text-sm text-slate-500">We matched you with a tutor at a time that suits you both. Accept to confirm your class.</p>
+          <div className="mt-4 space-y-3">
+            {toConfirm.map((m) => <ClassCard key={m.classId} c={m.class} viewer="student" actions={<RespondButtons action={respondToProposal} classId={m.classId} />} />)}
+          </div>
+        </Panel>
+      )}
+      {status === "AWAITING_ALLOCATION" && toConfirm.length === 0 && (
         <Notice tone="success">
           Your subscription is active. We&apos;re matching you with a tutor and will let you know as soon as your classes are scheduled.
         </Notice>
@@ -93,9 +116,26 @@ export default async function PortalHome() {
           </Panel>
           <Panel>
             <h2 className="font-semibold text-slate-900">Tutor & classes</h2>
-            <p className="mt-3 text-sm text-slate-600">
-              Your tutor and class times will appear here once you&apos;ve been matched.
-            </p>
+            {others.length > 0 && (
+              <div className="mt-3 space-y-3">
+                {others.map((m) => (
+                  <ClassCard
+                    key={m.classId}
+                    c={m.class}
+                    viewer="student"
+                    note={m.class.status === "AWAITING_TUTOR" ? "We've asked the tutor to confirm. You'll be asked to accept next." : m.status === "ACCEPTED" && m.class.status === "AWAITING_STUDENTS" ? "You've accepted. Waiting for your classmate." : undefined}
+                  />
+                ))}
+              </div>
+            )}
+            {waiting.length > 0 && (
+              <p className="mt-3 text-sm text-slate-600">
+                Still finding a tutor for {waiting.map((a) => a.course.code ?? a.course.title).join(", ")}. We&apos;ll let you know as soon as there&apos;s a match.
+              </p>
+            )}
+            {others.length === 0 && waiting.length === 0 && toConfirm.length === 0 && (
+              <p className="mt-3 text-sm text-slate-600">Your tutor and class times will appear here once you&apos;ve been matched.</p>
+            )}
           </Panel>
         </div>
       </div>

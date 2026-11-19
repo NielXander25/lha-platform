@@ -15,6 +15,7 @@ import {
   MapPin,
   ScrollText,
   ShieldCheck,
+  Shuffle,
   UserCog,
   UserRound,
   Users,
@@ -37,6 +38,7 @@ const ICONS = {
   approvals: ShieldCheck,
   audit: ScrollText,
   staff: UserCog,
+  matching: Shuffle,
 } as const;
 
 export type NavItem = { href: string; label: string; icon: keyof typeof ICONS; exact?: boolean };

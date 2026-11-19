@@ -11,6 +11,7 @@ import { LEVELS } from "@/lib/constants";
 import { initializeTransaction, paystackConfigured } from "@/lib/paystack";
 import { prisma } from "@/lib/prisma";
 import { parseTime, slotsToRanges, SLOT_MINUTES } from "@/lib/schedule";
+import { MAX_UPLOAD_BYTES } from "@/lib/upload-limits";
 import { refreshStudentStatus, studentProgress } from "@/lib/students";
 import { extractTimetable, timetableAiConfigured } from "@/lib/timetable-ai";
 
@@ -78,7 +79,6 @@ export async function saveCourses(fd: FormData) {
 
 /* ---------- Step 3: university timetable ---------- */
 
-const MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
 const ALLOWED_TYPES: Record<string, number[][]> = {
   // Check the file's first bytes, not just the name the browser reports.
   "application/pdf": [[0x25, 0x50, 0x44, 0x46]],
@@ -91,7 +91,7 @@ export async function uploadTimetable(fd: FormData) {
   const file = fd.get("file");
   if (!(file instanceof File) || file.size === 0) back("/portal/timetable", { error: "Choose a file to upload." });
   const f = file as File;
-  if (f.size > MAX_UPLOAD_BYTES) back("/portal/timetable", { error: "That file is larger than 5 MB." });
+  if (f.size > MAX_UPLOAD_BYTES) back("/portal/timetable", { error: "That file is larger than 4 MB. Upload a screenshot or photo instead." });
   const bytes = Buffer.from(await f.arrayBuffer());
   const type = Object.entries(ALLOWED_TYPES).find(([, sigs]) => sigs.some((sig) => sig.every((b, i) => bytes[i] === b)))?.[0];
   if (!type) back("/portal/timetable", { error: "Upload a PDF, JPG or PNG file." });
@@ -175,7 +175,7 @@ export async function confirmTimetable() {
     prisma.timetableUpload.count({ where: { studentId: student.id } }),
     prisma.timetableUpload.count({ where: { studentId: student.id, status: "PROCESSING" } }),
   ]);
-  if (uploads === 0) back("/portal/timetable", { error: "Upload your university timetable first. It's required." });
+  if (uploads === 0) back("/portal/timetable", { error: "We haven't received your timetable yet. Tap \"Tap to choose your timetable\" above and pick the file; it uploads straight away." });
   if (processing > 0) back("/portal/timetable", { error: "We're still reading your timetable. Please wait a moment." });
   if (count === 0) back("/portal/timetable", { error: "Add at least one lecture before confirming." });
   await prisma.studentProfile.update({ where: { id: student.id }, data: { timetableConfirmed: true } });
@@ -204,6 +204,7 @@ export async function saveAvailability(fd: FormData) {
     prisma.availability.createMany({ data: rows }),
   ]);
   await refreshStudentStatus(student.id);
+  (await import("@/lib/matching/respond")).scheduleMatching();
   redirect("/portal/payment");
 }
 
@@ -282,4 +283,11 @@ export async function submitBankTransfer(fd: FormData) {
   await audit({ actorId: user.id, action: "payment.transfer_submitted", entity: "Payment", entityId: payment.id });
   await refreshStudentStatus(student.id);
   back("/portal/payment", { ok: "Thanks. Our finance team will confirm your transfer against our bank records and activate your subscription." });
+}
+
+export async function respondToProposal(fd: FormData) {
+  const { user, student } = await currentStudent();
+  const { studentRespond } = await import("@/lib/matching/respond");
+  const result = await studentRespond(String(fd.get("classId")), student.id, fd.get("accept") === "true", user.id);
+  back("/portal", result.ok ? { ok: result.message } : { error: result.message });
 }

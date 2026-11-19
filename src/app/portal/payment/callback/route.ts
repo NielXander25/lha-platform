@@ -17,7 +17,9 @@ export async function GET(request: NextRequest) {
   if (!owned) return to({ error: "We couldn't find that payment." });
 
   try {
-    const { result } = await confirmPaystackReference(reference);
+    const outcome = await confirmPaystackReference(reference);
+    const { result } = outcome;
+    if (result === "success" && outcome.activated) (await import("@/lib/matching/respond")).scheduleMatching();
     if (result === "success" || result === "already") return to({ ok: "Payment confirmed. Thank you!" });
     if (result === "failed") return to({ error: "The payment didn't go through. You haven't been charged; please try again." });
     if (result === "review") return to({ ok: "We received your payment and our finance team is checking it." });

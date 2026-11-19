@@ -1,7 +1,8 @@
 import { saveProfile } from "../actions";
+import { ChoiceCards, FieldGroup } from "@/components/choice-cards";
 import { FlashMessage, one, Panel, StepHeader } from "@/components/portal-ui";
-import { Submit, TextField, fieldClass } from "@/components/forms";
-import { LEVELS } from "@/lib/constants";
+import { Submit, TextField } from "@/components/forms";
+import { LEVELS, shortDepartment } from "@/lib/constants";
 import { currentStudent } from "@/lib/current";
 import { prisma } from "@/lib/prisma";
 
@@ -17,37 +18,45 @@ export default async function ProfileStep({ searchParams }: { searchParams: Sear
       <StepHeader step="Step 1 of 5" title="Academic profile" description="Tell us where and what you study." />
       <FlashMessage ok={one(params.ok)} error={one(params.error)} />
       <Panel>
-        <form action={saveProfile} className="grid gap-4 sm:grid-cols-2">
-          <TextField label="Phone number" name="phone" type="tel" defaultValue={user.phone ?? ""} autoComplete="tel" />
-          <TextField label="Institution" name="institution" defaultValue={student.institution} />
-          <label className="block sm:col-span-2">
-            <span className="text-sm font-medium text-slate-700">Department</span>
-            <select name="departmentId" required defaultValue={student.departmentId ?? ""} className={`${fieldClass} mt-1.5`}>
-              <option value="" disabled>Choose your department…</option>
-              {departments.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
-            </select>
-          </label>
-          <label className="block">
-            <span className="text-sm font-medium text-slate-700">Level</span>
-            <select name="level" required defaultValue={student.level ?? ""} className={`${fieldClass} mt-1.5`}>
-              <option value="" disabled>Choose…</option>
-              {LEVELS.map((l) => <option key={l}>{l}</option>)}
-            </select>
-          </label>
-          <label className="block">
-            <span className="text-sm font-medium text-slate-700">Semester</span>
-            <select name="semester" required defaultValue={student.semester ?? ""} className={`${fieldClass} mt-1.5`}>
-              <option value="" disabled>Choose…</option>
-              <option value="FIRST">First semester</option>
-              <option value="SECOND">Second semester</option>
-            </select>
-          </label>
-          <div className="sm:col-span-2">
-            <TextField label="Matriculation number" name="matricNumber" required={false} defaultValue={student.matricNumber ?? ""} />
+        <form action={saveProfile} className="space-y-6">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <TextField label="Phone number" name="phone" type="tel" defaultValue={user.phone ?? ""} autoComplete="tel" />
+            <TextField label="Institution" name="institution" defaultValue={student.institution} />
           </div>
-          <div className="sm:col-span-2">
-            <Submit>Save and continue</Submit>
-          </div>
+
+          <FieldGroup label="Department">
+            <ChoiceCards
+              name="departmentId"
+              defaultValue={student.departmentId}
+              options={departments.map((d) => ({ value: d.id, label: shortDepartment(d.name), hint: "Engineering" }))}
+            />
+          </FieldGroup>
+
+          <FieldGroup label="Level">
+            <ChoiceCards
+              name="level"
+              size="sm"
+              columns="grid-cols-3 sm:grid-cols-5"
+              defaultValue={student.level}
+              options={LEVELS.map((l) => ({ value: l, label: l.replace(" Level", "L") }))}
+            />
+          </FieldGroup>
+
+          <FieldGroup label="Semester">
+            <ChoiceCards
+              name="semester"
+              size="sm"
+              columns="grid-cols-2"
+              defaultValue={student.semester}
+              options={[
+                { value: "FIRST", label: "First semester" },
+                { value: "SECOND", label: "Second semester" },
+              ]}
+            />
+          </FieldGroup>
+
+          <TextField label="Matriculation number" name="matricNumber" required={false} defaultValue={student.matricNumber ?? ""} />
+          <Submit>Save and continue</Submit>
         </form>
       </Panel>
     </div>

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { PageHeader, firstString } from "@/components/admin-ui";
-import { StatusBadge } from "@/components/portal-ui";
-import { fieldClass } from "@/components/forms";
+import { PackageMark, StageMark } from "@/components/student-marks";
+import { fieldClass } from "@/lib/ui";
 import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { STUDENT_STATUS_LABELS } from "@/lib/students";
@@ -50,7 +50,7 @@ export default async function AdminStudents({ searchParams }: { searchParams: Se
               <th className="px-4 py-3">Student</th>
               <th className="px-4 py-3">Department / level</th>
               <th className="px-4 py-3">Package</th>
-              <th className="px-4 py-3">Status</th>
+              <th className="px-4 py-3">Stage</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
@@ -61,8 +61,11 @@ export default async function AdminStudents({ searchParams }: { searchParams: Se
                   <p className="text-xs text-slate-500">{s.studentCode} · {s.user.email}</p>
                 </td>
                 <td className="px-4 py-3 text-slate-600">{s.department?.name ?? "—"}<br /><span className="text-xs">{s.level ?? ""}</span></td>
-                <td className="px-4 py-3 text-slate-600">{s.package?.name ?? "—"}</td>
-                <td className="px-4 py-3"><StatusBadge label={STUDENT_STATUS_LABELS[s.status] ?? s.status} /></td>
+                <td className="px-4 py-3"><PackageMark code={s.package?.code} name={s.package?.name} /></td>
+                <td className="px-4 py-3">
+                  <StageMark status={s.status} />
+                  <span className="mt-1 block text-xs text-slate-500">{STUDENT_STATUS_LABELS[s.status] ?? s.status}</span>
+                </td>
               </tr>
             ))}
             {students.length === 0 && (
