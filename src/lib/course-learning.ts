@@ -6,11 +6,18 @@ import { slugify } from "@/lib/utils";
 // Grows the course catalogue from students' timetables: any real-looking course code that isn't
 // in the catalogue yet is added, and existing courses learn which departments take them.
 
-/** "mth101" / "MTH-101" / "MTH 101" -> "MTH 101". Returns null for things that aren't course codes. */
+/**
+ * Find the course code in a timetable label: "mth101", "MTH-101", "AFIT-EEE305", "EEE 305 (Lab)"
+ * all give "MTH 101" / "EEE 305". Returns null for things that aren't course codes ("FREE PERIOD").
+ */
 export function normaliseCourseCode(raw: string): string | null {
-  const m = /^\s*([A-Za-z]{2,4})[\s\-_.]*(\d{3}[A-Za-z]?)\s*$/.exec(raw);
+  const m = /(?:^|[^A-Za-z])([A-Za-z]{2,4})[\s\-_.]*(\d{3}[A-Za-z]?)(?![0-9])/.exec(raw);
   return m ? `${m[1].toUpperCase()} ${m[2].toUpperCase()}` : null;
 }
+
+/** "GET 303" when a course has no real title yet (its title is just its code). */
+export const courseLabel = (c: { code: string | null; title: string }) =>
+  c.code && c.title !== c.code ? `${c.code}: ${c.title}` : (c.code ?? c.title);
 
 const SUBJECTS: [RegExp, string][] = [
   [/^(MTH|MAT|MAS)$/, "Mathematics"],

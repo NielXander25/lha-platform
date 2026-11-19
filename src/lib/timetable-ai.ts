@@ -7,7 +7,7 @@ import { audit } from "@/lib/audit";
 import { prisma } from "@/lib/prisma";
 import { DAYS, parseTime } from "@/lib/schedule";
 import { refreshStudentStatus } from "@/lib/students";
-import { learnCoursesFromTimetable } from "@/lib/course-learning";
+import { learnCoursesFromTimetable, normaliseCourseCode } from "@/lib/course-learning";
 
 // Reads an uploaded university timetable (PDF or image) with an AI model and turns it into
 // draft timetable entries. Students always review and confirm the result: extraction is
@@ -120,7 +120,8 @@ export async function extractTimetable(uploadId: string) {
     const entries = result.entries.flatMap((e) => {
       const startMin = parseTime(e.start);
       const endMin = parseTime(e.end);
-      const code = e.courseCode.trim().toUpperCase().slice(0, 20);
+      // Store the clean code ("AFIT-EEE305" -> "EEE 305") so lists and course learning agree.
+      const code = (normaliseCourseCode(e.courseCode) ?? e.courseCode.trim().toUpperCase()).slice(0, 20);
       if (startMin === null || endMin === null || endMin <= startMin || code.length < 2) return [];
       return [{
         studentId: upload.studentId,
@@ -144,10 +145,16 @@ export async function extractTimetable(uploadId: string) {
       return;
     }
 
+    // Don't repeat lectures the student already typed in by hand.
+    const typed = await prisma.timetableEntry.findMany({ where: { studentId: upload.studentId, source: "MANUAL" } });
+    const key = (code: string, day: number, start: number) => `${normaliseCourseCode(code) ?? code}|${day}|${start}`;
+    const typedKeys = new Set(typed.map((t) => key(t.courseCode, t.day, t.startMin)));
+    const fresh = entries.filter((e) => !typedKeys.has(key(e.courseCode, e.day, e.startMin)));
+
     await prisma.$transaction([
       // A new upload replaces earlier automatic entries; anything the student typed stays.
       prisma.timetableEntry.deleteMany({ where: { studentId: upload.studentId, source: "EXTRACTED" } }),
-      prisma.timetableEntry.createMany({ data: entries }),
+      prisma.timetableEntry.createMany({ data: fresh }),
       prisma.timetableUpload.update({
         where: { id: upload.id },
         data: { status: result.readable && entries.length > 0 ? "EXTRACTED" : "FAILED", extractionNotes: result.notes.slice(0, 1000) || null },

@@ -14,7 +14,7 @@ import { parseTime, slotsToRanges, SLOT_MINUTES } from "@/lib/schedule";
 import { MAX_UPLOAD_BYTES } from "@/lib/upload-limits";
 import { refreshStudentStatus, studentProgress } from "@/lib/students";
 import { extractTimetable, timetableAiConfigured } from "@/lib/timetable-ai";
-import { learnCoursesFromTimetable } from "@/lib/course-learning";
+import { learnCoursesFromTimetable, normaliseCourseCode } from "@/lib/course-learning";
 
 function back(path: string, msg: { ok?: string; error?: string }): never {
   const qs = new URLSearchParams(msg as Record<string, string>).toString();
@@ -146,7 +146,7 @@ export async function retryTimetableReading(fd: FormData) {
 }
 
 const EntrySchema = z.object({
-  courseCode: z.string().trim().min(2, "Enter the course code.").max(20).transform((v) => v.toUpperCase()),
+  courseCode: z.string().trim().min(2, "Enter the course code.").max(20).transform((v) => normaliseCourseCode(v) ?? v.toUpperCase()),
   courseTitle: z.string().trim().max(120).optional(),
   day: z.coerce.number().int().min(0).max(6),
   start: z.string(),
@@ -164,6 +164,10 @@ export async function addTimetableEntry(fd: FormData) {
   const endMin = parseTime(end);
   if (startMin === null || endMin === null || endMin <= startMin) {
     back("/portal/timetable", { error: "The end time must be after the start time." });
+  }
+  const duplicate = await prisma.timetableEntry.findMany({ where: { studentId: student.id, day: rest.day, startMin: startMin! } });
+  if (duplicate.some((d) => (normaliseCourseCode(d.courseCode) ?? d.courseCode) === rest.courseCode)) {
+    back("/portal/timetable", { error: `${rest.courseCode} is already listed at that time.` });
   }
   await prisma.timetableEntry.create({
     data: {

@@ -4,7 +4,7 @@ import { Submit } from "@/components/forms";
 import { currentStudent } from "@/lib/current";
 import { prisma } from "@/lib/prisma";
 import { formatPrice } from "@/lib/utils";
-import { normaliseCourseCode } from "@/lib/course-learning";
+import { courseLabel, learnCoursesFromTimetable, normaliseCourseCode } from "@/lib/course-learning";
 import { Sparkles } from "lucide-react";
 
 type SearchParams = Promise<{ [key: string]: string | string[] | undefined }>;
@@ -18,6 +18,8 @@ const MODES = [
 export default async function CoursesStep({ searchParams }: { searchParams: SearchParams }) {
   const { student } = await currentStudent();
   const params = await searchParams;
+  // Make sure every course on the timetable is in the catalogue (safe to repeat).
+  await learnCoursesFromTimetable(student.id);
   const [packages, courses, chosen, lectures] = await Promise.all([
     prisma.package.findMany({ where: { active: true }, orderBy: { sortOrder: "asc" } }),
     prisma.course.findMany({
@@ -41,7 +43,7 @@ export default async function CoursesStep({ searchParams }: { searchParams: Sear
     <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-slate-200 p-3 has-checked:border-brand-500 has-checked:bg-brand-50">
       <input type="checkbox" name="courseIds" value={c.id} defaultChecked={chosenIds.has(c.id)} className="mt-0.5 size-4 shrink-0 accent-brand-600" />
       <span className="text-sm">
-        <span className="block font-semibold text-slate-900">{c.code ? `${c.code}: ` : ""}{c.title}</span>
+        <span className="block font-semibold text-slate-900">{courseLabel(c)}</span>
         <span className="text-slate-500">{c.level}</span>
       </span>
     </label>
