@@ -1,7 +1,8 @@
 import { Trash2 } from "lucide-react";
 import { deleteCredential, saveTutorProfile, uploadCredential } from "../actions";
 import { FlashMessage, one, Panel, StepHeader } from "@/components/portal-ui";
-import { Submit, TextField, fieldClass } from "@/components/forms";
+import { Submit, TextField } from "@/components/forms";
+import { fieldClass } from "@/lib/ui";
 import { currentTutor } from "@/lib/current";
 import { prisma } from "@/lib/prisma";
 
@@ -62,7 +63,7 @@ export default async function TutorProfile({ searchParams }: { searchParams: Sea
 
       <Panel>
         <h2 className="font-semibold text-slate-900">Supporting credentials</h2>
-        <p className="mt-1 text-sm text-slate-600">Certificates, transcripts or ID. PDF, JPG or PNG, up to 5 MB each. Only administrators can see them.</p>
+        <p className="mt-1 text-sm text-slate-600">Certificates, transcripts or ID. PDF, JPG or PNG, up to 4 MB each. Only administrators can see them.</p>
         <form action={uploadCredential} className="mt-4 flex flex-wrap items-center gap-3">
           <input type="file" name="file" required accept="application/pdf,image/png,image/jpeg" className="block w-full text-sm text-slate-600 file:mr-3 file:rounded-full file:border-0 file:bg-brand-50 file:px-4 file:py-2 file:font-semibold file:text-brand-700 sm:w-auto" />
           <Submit className="px-5 py-2.5 text-sm">Upload</Submit>

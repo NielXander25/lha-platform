@@ -1,8 +1,10 @@
-import { Loader2, Sparkles, Trash2, Upload } from "lucide-react";
+import { Loader2, Sparkles, Trash2 } from "lucide-react";
 import { addTimetableEntry, confirmTimetable, deleteTimetableEntry, retryTimetableReading, uploadTimetable } from "../actions";
 import { AutoRefresh } from "@/components/auto-refresh";
+import { TimetableUploader } from "@/components/timetable-uploader";
 import { FlashMessage, Notice, one, Panel, StatusBadge, StepHeader } from "@/components/portal-ui";
-import { Submit, fieldClass } from "@/components/forms";
+import { Submit } from "@/components/forms";
+import { fieldClass } from "@/lib/ui";
 import { currentStudent } from "@/lib/current";
 import { prisma } from "@/lib/prisma";
 import { DAYS, DAYS_SHORT, formatTime } from "@/lib/schedule";
@@ -47,20 +49,9 @@ export default async function TimetableStep({ searchParams }: { searchParams: Se
           <StatusBadge label={uploads.length ? "Uploaded" : "Required"} tone={uploads.length ? "good" : "warn"} />
         </div>
         <p className="mt-1 text-sm text-slate-600">
-          PDF, JPG or PNG, up to 5 MB. A clear photo or screenshot works. Only you and our staff can see it.
+          A PDF, or a clear photo or screenshot (up to 4 MB). Only you and our staff can see it.
         </p>
-        <form action={uploadTimetable} className="mt-4 flex flex-wrap items-center gap-3">
-          <input
-            type="file"
-            name="file"
-            required
-            accept="application/pdf,image/png,image/jpeg"
-            className="block w-full text-sm text-slate-600 file:mr-3 file:rounded-full file:border-0 file:bg-brand-50 file:px-4 file:py-2 file:font-semibold file:text-brand-700 sm:w-auto"
-          />
-          <Submit className="flex items-center gap-2 px-5 py-2.5 text-sm">
-            <Upload className="inline size-4" /> {uploads.length ? "Upload a new version" : "Upload"}
-          </Submit>
-        </form>
+        <TimetableUploader action={uploadTimetable} hasUpload={uploads.length > 0} />
 
         {latest && (
           <div className="mt-4 space-y-3">

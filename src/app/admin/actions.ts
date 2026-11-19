@@ -259,6 +259,7 @@ export async function reviewTutor(formData: FormData) {
     data: { status: decision, reviewNote: note, approvedAt: decision === "APPROVED" ? new Date() : null, active: decision === "APPROVED" },
   });
   await audit({ actorId: user.id, action: `tutor.${decision.toLowerCase()}`, entity: "Tutor", entityId: id, details: { note } });
+  if (decision === "APPROVED") (await import("@/lib/matching/respond")).scheduleMatching();
   revalidatePath("/admin", "layout");
   redirect(`/admin/tutors/${id}?ok=${encodeURIComponent(`Tutor ${decision.toLowerCase()}.`)}`);
 }
@@ -270,6 +271,7 @@ export async function setCourseCompetency(formData: FormData) {
   const approved = formData.get("approved") === "true";
   await prisma.tutorCourse.update({ where: { tutorId_courseId: { tutorId, courseId } }, data: { approved } });
   await audit({ actorId: user.id, action: approved ? "tutor.course_approved" : "tutor.course_unapproved", entity: "Tutor", entityId: tutorId, details: { courseId } });
+  if (approved) (await import("@/lib/matching/respond")).scheduleMatching();
   revalidatePath(`/admin/tutors/${tutorId}`);
 }
 
@@ -313,8 +315,9 @@ export async function verifyTransfer(formData: FormData) {
   const payment = await prisma.payment.findUniqueOrThrow({ where: { id: paymentId } });
   if (payment.method !== "BANK_TRANSFER") fail("/admin/payments", "Only bank transfers are verified here.");
 
-  const { changed } = await settlePayment({ paymentId, outcome: "SUCCESS", amountReceived, bankReference, actorId: user.id });
+  const { changed, activated } = await settlePayment({ paymentId, outcome: "SUCCESS", amountReceived, bankReference, actorId: user.id });
   if (!changed) fail("/admin/payments", "That payment was already processed.");
+  if (activated) (await import("@/lib/matching/respond")).scheduleMatching();
   revalidatePath("/admin", "layout");
   redirect("/admin/payments?ok=" + encodeURIComponent(`Transfer ${payment.reference} verified.`));
 }
@@ -362,4 +365,54 @@ export async function setUserActive(formData: FormData) {
   ]);
   await audit({ actorId: user.id, action: active ? "user.activated" : "user.deactivated", entity: "User", entityId: id });
   revalidatePath("/admin/staff");
+}
+
+/* ---------- Matching ---------- */
+
+export async function runMatchingNow() {
+  const user = await requireAdmin();
+  const { runMatching } = await import("@/lib/matching/run");
+  const s = await runMatching(user.id);
+  revalidatePath("/admin", "layout");
+  redirect(`/admin/matching?ok=${encodeURIComponent(`Matching finished: ${s.matched} matched, ${s.waiting} waiting, ${s.conflicts} with conflicts.`)}`);
+}
+
+const WeightsSchema = z.object({
+  competence: z.coerce.number().int().min(0).max(100),
+  schedule: z.coerce.number().int().min(0).max(100),
+  experience: z.coerce.number().int().min(0).max(100),
+  requirements: z.coerce.number().int().min(0).max(100),
+  workload: z.coerce.number().int().min(0).max(100),
+});
+
+export async function saveMatchingWeights(formData: FormData) {
+  const user = await requireAdmin();
+  const parsed = WeightsSchema.safeParse(form(formData));
+  if (!parsed.success) fail("/admin/matching", "Weights must be whole numbers from 0 to 100.");
+  const total = Object.values(parsed.data).reduce((a, b) => a + b, 0);
+  if (total !== 100) fail("/admin/matching", `Weights must add up to 100 (they add up to ${total}).`);
+  const { saveWeights } = await import("@/lib/matching/run");
+  await saveWeights(parsed.data);
+  await audit({ actorId: user.id, action: "matching.weights_updated", entity: "Setting", entityId: "matching.weights", details: parsed.data });
+  redirect("/admin/matching?ok=" + encodeURIComponent("Weights saved. They apply to the next matching run."));
+}
+
+export async function manualAssign(formData: FormData) {
+  const user = await requireAdmin();
+  const allocationId = String(formData.get("allocationId") ?? "");
+  const tutorId = String(formData.get("tutorId") ?? "");
+  const { assignManually } = await import("@/lib/matching/run");
+  const result = await assignManually(allocationId, tutorId, user.id);
+  revalidatePath("/admin", "layout");
+  redirect(`/admin/matching/${allocationId}?${result.ok ? "ok" : "error"}=${encodeURIComponent(result.message)}`);
+}
+
+export async function adminCancelClass(formData: FormData) {
+  const user = await requireAdmin();
+  const classId = String(formData.get("classId") ?? "");
+  const back = String(formData.get("back") ?? "/admin/matching");
+  const { cancelClass } = await import("@/lib/matching/respond");
+  await cancelClass(classId, user.id);
+  revalidatePath("/admin", "layout");
+  redirect(`${back.startsWith("/admin") ? back : "/admin/matching"}?ok=${encodeURIComponent("Class cancelled. Its students are back in the queue.")}`);
 }

@@ -10,6 +10,7 @@ const NAV: (NavItem & { roles: string[] })[] = [
   { href: "/admin/students", label: "Students", icon: "students", roles: ["ADMIN", "SUPPORT", "FINANCE"] },
   { href: "/admin/tutors", label: "Tutors & approvals", icon: "approvals", roles: ["ADMIN"] },
   { href: "/admin/payments", label: "Payments", icon: "payment", roles: ["ADMIN", "FINANCE"] },
+  { href: "/admin/matching", label: "Matching & classes", icon: "matching", roles: ["ADMIN", "SUPPORT"] },
   { href: "/admin/assignments", label: "Public tutor listings", icon: "assignments", roles: ["ADMIN"] },
   { href: "/admin/courses", label: "Courses", icon: "courses", roles: ["ADMIN"] },
   { href: "/admin/pricing", label: "Packages", icon: "pricing", roles: ["ADMIN"] },

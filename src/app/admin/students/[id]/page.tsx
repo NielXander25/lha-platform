@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { setStudentSuspended } from "../../actions";
 import { Panel, StatusBadge } from "@/components/portal-ui";
+import { PackageMark, StageMark } from "@/components/student-marks";
 import { requireUser } from "@/lib/auth";
 import { PAYMENT_STATUS_LABELS } from "@/lib/billing";
 import { prisma } from "@/lib/prisma";
@@ -40,7 +41,11 @@ export default async function StudentDetail({ params }: { params: Promise<{ id: 
           <h1 className="font-display text-2xl font-semibold text-brand-950 sm:text-3xl">{s.user.name}</h1>
           <p className="text-sm text-slate-500">{s.studentCode} · {s.user.email}{s.user.phone ? ` · ${s.user.phone}` : ""}</p>
         </div>
-        <StatusBadge label={STUDENT_STATUS_LABELS[s.status] ?? s.status} tone={s.status === "SUSPENDED" ? "bad" : "info"} />
+        <div className="flex flex-wrap items-center gap-2">
+          <PackageMark code={s.package?.code} name={s.package?.name} />
+          <StageMark status={s.status} />
+          <span className="text-xs text-slate-500">{STUDENT_STATUS_LABELS[s.status] ?? s.status}</span>
+        </div>
       </header>
 
       <div className="grid gap-6 lg:grid-cols-2">
