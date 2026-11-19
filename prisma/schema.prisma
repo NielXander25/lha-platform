@@ -203,14 +203,16 @@ model StudentCourse {
 
 // An uploaded university timetable, stored privately in the database.
 model TimetableUpload {
-  id        String   @id @default(cuid())
-  studentId String
-  fileName  String
-  mimeType  String
-  size      Int
-  data      Bytes
-  status    String   @default("UPLOADED") // UPLOADED | PROCESSING | EXTRACTED | FAILED
-  createdAt DateTime @default(now())
+  id              String   @id @default(cuid())
+  studentId       String
+  fileName        String
+  mimeType        String
+  size            Int
+  data            Bytes
+  status          String   @default("UPLOADED") // UPLOADED | PROCESSING | EXTRACTED | FAILED
+  extractionNotes String? // what the automatic reader says to double-check
+  updatedAt       DateTime @default(now()) @updatedAt
+  createdAt       DateTime @default(now())
 
   student StudentProfile   @relation(fields: [studentId], references: [id], onDelete: Cascade)
   entries TimetableEntry[]

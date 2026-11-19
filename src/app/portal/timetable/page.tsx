@@ -1,12 +1,17 @@
-import { Trash2, Upload } from "lucide-react";
-import { addTimetableEntry, confirmTimetable, deleteTimetableEntry, uploadTimetable } from "../actions";
-import { FlashMessage, Notice, one, Panel, StepHeader } from "@/components/portal-ui";
+import { Loader2, Sparkles, Trash2, Upload } from "lucide-react";
+import { addTimetableEntry, confirmTimetable, deleteTimetableEntry, retryTimetableReading, uploadTimetable } from "../actions";
+import { AutoRefresh } from "@/components/auto-refresh";
+import { FlashMessage, Notice, one, Panel, StatusBadge, StepHeader } from "@/components/portal-ui";
 import { Submit, fieldClass } from "@/components/forms";
 import { currentStudent } from "@/lib/current";
 import { prisma } from "@/lib/prisma";
 import { DAYS, DAYS_SHORT, formatTime } from "@/lib/schedule";
+import { readingState, timetableAiConfigured } from "@/lib/timetable-ai";
 
 type SearchParams = Promise<{ [key: string]: string | string[] | undefined }>;
+
+// Background reading happens in the upload action's `after()`; give it time to finish.
+export const maxDuration = 120;
 
 export default async function TimetableStep({ searchParams }: { searchParams: SearchParams }) {
   const { student } = await currentStudent();
@@ -14,24 +19,36 @@ export default async function TimetableStep({ searchParams }: { searchParams: Se
   const [uploads, entries] = await Promise.all([
     prisma.timetableUpload.findMany({
       where: { studentId: student.id },
-      select: { id: true, fileName: true, size: true, createdAt: true },
+      select: { id: true, fileName: true, size: true, status: true, extractionNotes: true, createdAt: true, updatedAt: true },
       orderBy: { createdAt: "desc" },
     }),
     prisma.timetableEntry.findMany({ where: { studentId: student.id }, orderBy: [{ day: "asc" }, { startMin: "asc" }] }),
   ]);
+  const ai = timetableAiConfigured();
+  const latest = uploads[0];
+  const state = latest ? readingState(latest) : null;
+  const processing = state === "processing";
+  const stuck = state === "stuck";
+  const toCheck = entries.filter((e) => e.source === "EXTRACTED" && (e.confidence ?? 1) < 0.8).length;
 
   return (
     <div className="max-w-3xl space-y-6">
+      {processing && <AutoRefresh />}
       <StepHeader
         step="Step 3 of 5"
         title="University timetable"
-        description="We schedule tutorials around your lectures, so we need your timetable."
+        description="Upload your official timetable. We schedule tutorials around your lectures, so it's required."
       />
       <FlashMessage ok={one(params.ok)} error={one(params.error)} />
 
       <Panel>
-        <h2 className="font-semibold text-slate-900">1. Upload your timetable</h2>
-        <p className="mt-1 text-sm text-slate-600">PDF, JPG or PNG, up to 5 MB. Only you and our staff can see it.</p>
+        <div className="flex flex-wrap items-center gap-2">
+          <h2 className="font-semibold text-slate-900">1. Upload your timetable</h2>
+          <StatusBadge label={uploads.length ? "Uploaded" : "Required"} tone={uploads.length ? "good" : "warn"} />
+        </div>
+        <p className="mt-1 text-sm text-slate-600">
+          PDF, JPG or PNG, up to 5 MB. A clear photo or screenshot works. Only you and our staff can see it.
+        </p>
         <form action={uploadTimetable} className="mt-4 flex flex-wrap items-center gap-3">
           <input
             type="file"
@@ -41,72 +58,116 @@ export default async function TimetableStep({ searchParams }: { searchParams: Se
             className="block w-full text-sm text-slate-600 file:mr-3 file:rounded-full file:border-0 file:bg-brand-50 file:px-4 file:py-2 file:font-semibold file:text-brand-700 sm:w-auto"
           />
           <Submit className="flex items-center gap-2 px-5 py-2.5 text-sm">
-            <Upload className="inline size-4" /> Upload
+            <Upload className="inline size-4" /> {uploads.length ? "Upload a new version" : "Upload"}
           </Submit>
         </form>
-        {uploads.length > 0 && (
-          <ul className="mt-4 space-y-1 text-sm">
-            {uploads.map((u) => (
-              <li key={u.id}>
-                <a href={`/api/files/timetable/${u.id}`} className="font-medium text-brand-700 underline">{u.fileName}</a>{" "}
-                <span className="text-slate-500">({Math.ceil(u.size / 1024)} KB)</span>
-              </li>
-            ))}
-          </ul>
+
+        {latest && (
+          <div className="mt-4 space-y-3">
+            {processing && (
+              <Notice>
+                <span className="flex items-center gap-2">
+                  <Loader2 className="size-4 animate-spin" /> Reading <strong>{latest.fileName}</strong>… This usually takes under a minute, and this page updates by itself.
+                </span>
+              </Notice>
+            )}
+            {latest.status === "EXTRACTED" && (
+              <Notice tone="success">
+                <span className="flex items-start gap-2">
+                  <Sparkles className="mt-0.5 size-4 shrink-0" />
+                  <span>
+                    We read your timetable and added the lectures below. Please check every one against your timetable
+                    {toCheck > 0 && <> — <strong>{toCheck}</strong> marked &ldquo;Check this&rdquo; {toCheck === 1 ? "needs" : "need"} a closer look</>}.
+                    {latest.extractionNotes && <span className="mt-1 block">Note: {latest.extractionNotes}</span>}
+                  </span>
+                </span>
+              </Notice>
+            )}
+            {(latest.status === "FAILED" || stuck) && (
+              <Notice tone="warning">
+                We couldn&apos;t read this file automatically. Please add your lectures by hand below, or upload a clearer copy.
+                {ai && (
+                  <form action={retryTimetableReading} className="mt-2">
+                    <input type="hidden" name="id" value={latest.id} />
+                    <button className="text-sm font-semibold underline">Try reading it again</button>
+                  </form>
+                )}
+              </Notice>
+            )}
+            {latest.status === "UPLOADED" && !ai && (
+              <Notice>Uploaded. Please add your lectures below so we can avoid clashes.</Notice>
+            )}
+            <ul className="space-y-1 text-sm">
+              {uploads.map((u) => (
+                <li key={u.id}>
+                  <a href={`/api/files/timetable/${u.id}`} target="_blank" className="font-medium text-brand-700 underline">{u.fileName}</a>{" "}
+                  <span className="text-slate-500">({Math.ceil(u.size / 1024)} KB)</span>
+                </li>
+              ))}
+            </ul>
+          </div>
         )}
-        <div className="mt-4">
-          <Notice>Automatic reading of uploaded timetables is coming soon. For now, please also add your lectures below.</Notice>
-        </div>
       </Panel>
 
       <Panel>
-        <h2 className="font-semibold text-slate-900">2. Add your lectures</h2>
-        <form action={addTimetableEntry} className="mt-4 grid gap-3 sm:grid-cols-6">
-          <input name="courseCode" required placeholder="Code, e.g. MTH 101" className={`${fieldClass} sm:col-span-2`} aria-label="Course code" />
-          <input name="courseTitle" placeholder="Title (optional)" className={`${fieldClass} sm:col-span-4`} aria-label="Course title" />
-          <select name="day" required defaultValue="0" className={`${fieldClass} sm:col-span-2`} aria-label="Day">
-            {DAYS.map((d, i) => <option key={d} value={i}>{d}</option>)}
-          </select>
-          <input name="start" type="time" required step={900} defaultValue="08:00" className={fieldClass} aria-label="Start time" />
-          <input name="end" type="time" required step={900} defaultValue="10:00" className={fieldClass} aria-label="End time" />
-          <select name="activityType" defaultValue="Lecture" className={`${fieldClass} sm:col-span-2`} aria-label="Type">
-            <option>Lecture</option>
-            <option>Practical</option>
-            <option>Tutorial</option>
-            <option>Other</option>
-          </select>
-          <input name="venue" placeholder="Venue (optional)" className={`${fieldClass} sm:col-span-4`} aria-label="Venue" />
-          <div className="sm:col-span-2"><Submit className="w-full px-4 py-2.5 text-sm">Add</Submit></div>
-        </form>
+        <h2 className="font-semibold text-slate-900">2. Check your lectures</h2>
+        <p className="mt-1 text-sm text-slate-600">
+          {ai ? "Fix anything we read wrongly by removing it and adding the correct one. Add anything we missed." : "Add each lecture, practical and lab from your timetable."}
+        </p>
 
         {entries.length > 0 ? (
-          <ul className="mt-5 divide-y divide-slate-100 rounded-xl border border-slate-200">
-            {entries.map((e) => (
-              <li key={e.id} className="flex items-center gap-3 px-4 py-3 text-sm">
-                <span className="w-10 shrink-0 font-semibold text-brand-800">{DAYS_SHORT[e.day]}</span>
-                <span className="w-36 shrink-0 text-slate-600">{formatTime(e.startMin)} – {formatTime(e.endMin)}</span>
-                <span className="min-w-0 flex-1">
-                  <span className="font-medium text-slate-900">{e.courseCode}</span>
-                  <span className="text-slate-500">{[e.activityType, e.venue].filter(Boolean).map((x) => ` · ${x}`).join("")}</span>
-                </span>
-                <form action={deleteTimetableEntry}>
-                  <input type="hidden" name="id" value={e.id} />
-                  <button aria-label={`Remove ${e.courseCode}`} className="text-rose-600 hover:text-rose-700"><Trash2 className="size-4" /></button>
-                </form>
-              </li>
-            ))}
+          <ul className="mt-4 divide-y divide-slate-100 rounded-xl border border-slate-200">
+            {entries.map((e) => {
+              const check = e.source === "EXTRACTED" && (e.confidence ?? 1) < 0.8;
+              return (
+                <li key={e.id} className={`flex items-center gap-3 px-4 py-3 text-sm ${check ? "bg-amber-50" : ""}`}>
+                  <span className="w-10 shrink-0 font-semibold text-brand-800">{DAYS_SHORT[e.day]}</span>
+                  <span className="w-36 shrink-0 text-slate-600">{formatTime(e.startMin)} – {formatTime(e.endMin)}</span>
+                  <span className="min-w-0 flex-1">
+                    <span className="font-medium text-slate-900">{e.courseCode}</span>
+                    <span className="text-slate-500">{[e.activityType, e.venue].filter(Boolean).map((x) => ` · ${x}`).join("")}</span>
+                    {check && <span className="ml-2"><StatusBadge label="Check this" tone="warn" /></span>}
+                  </span>
+                  <form action={deleteTimetableEntry}>
+                    <input type="hidden" name="id" value={e.id} />
+                    <button aria-label={`Remove ${e.courseCode}`} className="text-rose-600 hover:text-rose-700"><Trash2 className="size-4" /></button>
+                  </form>
+                </li>
+              );
+            })}
           </ul>
         ) : (
-          <p className="mt-5 text-sm text-slate-500">No lectures added yet.</p>
+          <p className="mt-4 text-sm text-slate-500">{processing ? "Your lectures will appear here shortly." : "No lectures yet."}</p>
         )}
+
+        <details className="mt-5" open={!ai || latest?.status === "FAILED" || stuck}>
+          <summary className="cursor-pointer text-sm font-semibold text-brand-700">Add a lecture by hand</summary>
+          <form action={addTimetableEntry} className="mt-3 grid gap-3 sm:grid-cols-6">
+            <input name="courseCode" required placeholder="Code, e.g. MTH 101" className={`${fieldClass} sm:col-span-2`} aria-label="Course code" />
+            <input name="courseTitle" placeholder="Title (optional)" className={`${fieldClass} sm:col-span-4`} aria-label="Course title" />
+            <select name="day" required defaultValue="0" className={`${fieldClass} sm:col-span-2`} aria-label="Day">
+              {DAYS.map((d, i) => <option key={d} value={i}>{d}</option>)}
+            </select>
+            <input name="start" type="time" required step={900} defaultValue="08:00" className={fieldClass} aria-label="Start time" />
+            <input name="end" type="time" required step={900} defaultValue="10:00" className={fieldClass} aria-label="End time" />
+            <select name="activityType" defaultValue="Lecture" className={`${fieldClass} sm:col-span-2`} aria-label="Type">
+              <option>Lecture</option>
+              <option>Practical</option>
+              <option>Tutorial</option>
+              <option>Other</option>
+            </select>
+            <input name="venue" placeholder="Venue (optional)" className={`${fieldClass} sm:col-span-4`} aria-label="Venue" />
+            <div className="sm:col-span-2"><Submit className="w-full px-4 py-2.5 text-sm">Add</Submit></div>
+          </form>
+        </details>
       </Panel>
 
       <Panel>
-        <h2 className="font-semibold text-slate-900">3. Check and confirm</h2>
+        <h2 className="font-semibold text-slate-900">3. Confirm</h2>
         {student.timetableConfirmed ? (
-          <p className="mt-2 text-sm text-emerald-700">Confirmed. If anything changes, edit it above and confirm again.</p>
+          <p className="mt-2 text-sm text-emerald-700">Confirmed. If anything changes, upload a new version or edit above, then confirm again.</p>
         ) : (
-          <p className="mt-2 text-sm text-slate-600">Make sure every lecture, practical and lab is listed with the right times.</p>
+          <p className="mt-2 text-sm text-slate-600">Confirm once every lecture, practical and lab is listed with the right day and time.</p>
         )}
         <form action={confirmTimetable} className="mt-4">
           <Submit>{student.timetableConfirmed ? "Continue" : "My timetable is correct"}</Submit>

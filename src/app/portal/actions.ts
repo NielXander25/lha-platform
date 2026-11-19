@@ -1,6 +1,7 @@
 "use server";
 
 import { headers } from "next/headers";
+import { after } from "next/server";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { audit } from "@/lib/audit";
@@ -11,6 +12,7 @@ import { initializeTransaction, paystackConfigured } from "@/lib/paystack";
 import { prisma } from "@/lib/prisma";
 import { parseTime, slotsToRanges, SLOT_MINUTES } from "@/lib/schedule";
 import { refreshStudentStatus, studentProgress } from "@/lib/students";
+import { extractTimetable, timetableAiConfigured } from "@/lib/timetable-ai";
 
 function back(path: string, msg: { ok?: string; error?: string }): never {
   const qs = new URLSearchParams(msg as Record<string, string>).toString();
@@ -94,11 +96,31 @@ export async function uploadTimetable(fd: FormData) {
   const type = Object.entries(ALLOWED_TYPES).find(([, sigs]) => sigs.some((sig) => sig.every((b, i) => bytes[i] === b)))?.[0];
   if (!type) back("/portal/timetable", { error: "Upload a PDF, JPG or PNG file." });
 
+  const ai = timetableAiConfigured();
   const upload = await prisma.timetableUpload.create({
-    data: { studentId: student.id, fileName: f.name.slice(0, 200), mimeType: type!, size: f.size, data: bytes },
+    data: { studentId: student.id, fileName: f.name.slice(0, 200), mimeType: type!, size: f.size, data: bytes, status: ai ? "PROCESSING" : "UPLOADED" },
   });
+  await prisma.studentProfile.update({ where: { id: student.id }, data: { timetableConfirmed: false } });
   await audit({ actorId: user.id, action: "timetable.uploaded", entity: "TimetableUpload", entityId: upload.id });
+  await refreshStudentStatus(student.id);
+  if (ai) {
+    // Read the timetable after the response is sent, so the student isn't kept waiting.
+    after(() => extractTimetable(upload.id));
+    // The page itself shows progress while reading, so no banner that would go stale.
+    redirect("/portal/timetable");
+  }
   back("/portal/timetable", { ok: "Timetable uploaded. Now add your lectures below so we can avoid clashes." });
+}
+
+export async function retryTimetableReading(fd: FormData) {
+  const { student } = await currentStudent();
+  if (!timetableAiConfigured()) back("/portal/timetable", { error: "Automatic reading isn't available right now. Please add your lectures by hand." });
+  const upload = await prisma.timetableUpload.findFirst({ where: { id: String(fd.get("id")), studentId: student.id } });
+  if (!upload) back("/portal/timetable", { error: "Upload not found." });
+  await prisma.timetableUpload.update({ where: { id: upload!.id }, data: { status: "PROCESSING" } });
+  await refreshStudentStatus(student.id);
+  after(() => extractTimetable(upload!.id));
+  redirect("/portal/timetable");
 }
 
 const EntrySchema = z.object({
@@ -148,7 +170,13 @@ export async function deleteTimetableEntry(fd: FormData) {
 
 export async function confirmTimetable() {
   const { user, student } = await currentStudent();
-  const count = await prisma.timetableEntry.count({ where: { studentId: student.id } });
+  const [count, uploads, processing] = await Promise.all([
+    prisma.timetableEntry.count({ where: { studentId: student.id } }),
+    prisma.timetableUpload.count({ where: { studentId: student.id } }),
+    prisma.timetableUpload.count({ where: { studentId: student.id, status: "PROCESSING" } }),
+  ]);
+  if (uploads === 0) back("/portal/timetable", { error: "Upload your university timetable first. It's required." });
+  if (processing > 0) back("/portal/timetable", { error: "We're still reading your timetable. Please wait a moment." });
   if (count === 0) back("/portal/timetable", { error: "Add at least one lecture before confirming." });
   await prisma.studentProfile.update({ where: { id: student.id }, data: { timetableConfirmed: true } });
   await audit({ actorId: user.id, action: "timetable.confirmed", entity: "StudentProfile", entityId: student.id, details: { entries: count } });

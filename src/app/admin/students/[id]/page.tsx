@@ -75,7 +75,7 @@ export default async function StudentDetail({ params }: { params: Promise<{ id: 
           <h2 className="font-semibold text-slate-900">Timetable {s.timetableConfirmed ? <StatusBadge label="Confirmed" tone="good" /> : <StatusBadge label="Not confirmed" tone="warn" />}</h2>
           <ul className="mt-3 space-y-1 text-sm text-slate-700">
             {s.timetableEntries.map((e) => (
-              <li key={e.id}>{DAYS_SHORT[e.day]} {formatTime(e.startMin)}–{formatTime(e.endMin)} · <strong>{e.courseCode}</strong>{e.venue ? ` · ${e.venue}` : ""}</li>
+              <li key={e.id}>{DAYS_SHORT[e.day]} {formatTime(e.startMin)}–{formatTime(e.endMin)} · <strong>{e.courseCode}</strong>{e.venue ? ` · ${e.venue}` : ""}{e.source === "EXTRACTED" && <span className="text-xs text-slate-500"> (read automatically)</span>}</li>
             ))}
             {s.timetableEntries.length === 0 && <li className="text-slate-500">No lectures entered.</li>}
           </ul>
