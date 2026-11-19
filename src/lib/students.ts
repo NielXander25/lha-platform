@@ -23,7 +23,7 @@ const LOCKED = new Set(["PAYMENT_VERIFIED", "AWAITING_ALLOCATION", "ALLOCATED", 
 export const ONBOARDING_STEPS = [
   { key: "profile", label: "Academic profile", href: "/portal/profile" },
   { key: "courses", label: "Courses & package", href: "/portal/courses" },
-  { key: "timetable", label: "University timetable", href: "/portal/timetable" },
+  { key: "timetable", label: "Upload your university timetable", href: "/portal/timetable" },
   { key: "availability", label: "Availability", href: "/portal/availability" },
   { key: "payment", label: "Payment", href: "/portal/payment" },
 ] as const;
@@ -33,7 +33,7 @@ export async function studentProgress(studentId: string) {
     where: { id: studentId },
     include: {
       user: { select: { id: true, phone: true } },
-      _count: { select: { courses: true, timetableEntries: true } },
+      _count: { select: { courses: true, timetableEntries: true, timetableUploads: true } },
     },
   });
   const [availability, pendingPayment] = await Promise.all([
@@ -45,7 +45,8 @@ export async function studentProgress(studentId: string) {
   const done = {
     profile: Boolean(s.departmentId && s.level && s.semester && s.user.phone),
     courses: Boolean(s._count.courses > 0 && s.packageId),
-    timetable: s.timetableConfirmed,
+    // A timetable counts only once a file is uploaded and the student has confirmed the entries.
+    timetable: s.timetableConfirmed && s._count.timetableUploads > 0,
     availability: availability > 0,
     payment: LOCKED.has(s.status),
   };
@@ -56,10 +57,13 @@ export async function studentProgress(studentId: string) {
 export async function refreshStudentStatus(studentId: string) {
   const { student, done, pendingPayment } = await studentProgress(studentId);
   if (LOCKED.has(student.status)) return student.status;
+  const processing = await prisma.timetableUpload.count({ where: { studentId, status: "PROCESSING" } });
   const status = !done.profile || !done.courses
     ? "PROFILE_INCOMPLETE"
-    : !student.timetableConfirmed
-      ? student._count.timetableEntries > 0
+    : processing > 0
+      ? "TIMETABLE_PROCESSING"
+    : !done.timetable
+      ? student._count.timetableEntries > 0 && student._count.timetableUploads > 0
         ? "AWAITING_TIMETABLE_CONFIRMATION"
         : "AWAITING_TIMETABLE"
       : !done.availability
