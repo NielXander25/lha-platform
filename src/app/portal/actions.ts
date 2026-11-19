@@ -98,10 +98,16 @@ export async function uploadTimetable(fd: FormData) {
   if (!type) back("/portal/timetable", { error: "Upload a PDF, JPG or PNG file." });
 
   const ai = timetableAiConfigured();
-  const upload = await prisma.timetableUpload.create({
-    data: { studentId: student.id, fileName: f.name.slice(0, 200), mimeType: type!, size: f.size, data: bytes, status: ai ? "PROCESSING" : "UPLOADED" },
-  });
-  await prisma.studentProfile.update({ where: { id: student.id }, data: { timetableConfirmed: false } });
+  // A new upload replaces the old one: earlier files and the lectures read from them are removed.
+  // Lectures the student typed by hand are kept.
+  const [, , upload] = await prisma.$transaction([
+    prisma.timetableEntry.deleteMany({ where: { studentId: student.id, source: "EXTRACTED" } }),
+    prisma.timetableUpload.deleteMany({ where: { studentId: student.id } }),
+    prisma.timetableUpload.create({
+      data: { studentId: student.id, fileName: f.name.slice(0, 200), mimeType: type!, size: f.size, data: bytes, status: ai ? "PROCESSING" : "UPLOADED" },
+    }),
+    prisma.studentProfile.update({ where: { id: student.id }, data: { timetableConfirmed: false } }),
+  ]);
   await audit({ actorId: user.id, action: "timetable.uploaded", entity: "TimetableUpload", entityId: upload.id });
   await refreshStudentStatus(student.id);
   if (ai) {
@@ -111,6 +117,21 @@ export async function uploadTimetable(fd: FormData) {
     redirect("/portal/timetable");
   }
   back("/portal/timetable", { ok: "Timetable uploaded. Now add your lectures below so we can avoid clashes." });
+}
+
+export async function deleteTimetableUpload(fd: FormData) {
+  const { user, student } = await currentStudent();
+  const upload = await prisma.timetableUpload.findFirst({ where: { id: String(fd.get("id")), studentId: student.id }, select: { id: true } });
+  if (!upload) back("/portal/timetable", { error: "That file was already removed." });
+  await prisma.$transaction([
+    // Lectures read from this file go with it; anything typed by hand stays.
+    prisma.timetableEntry.deleteMany({ where: { studentId: student.id, uploadId: upload!.id, source: "EXTRACTED" } }),
+    prisma.timetableUpload.delete({ where: { id: upload!.id } }),
+    prisma.studentProfile.update({ where: { id: student.id }, data: { timetableConfirmed: false } }),
+  ]);
+  await audit({ actorId: user.id, action: "timetable.deleted", entity: "TimetableUpload", entityId: upload!.id });
+  await refreshStudentStatus(student.id);
+  back("/portal/timetable", { ok: "Timetable removed. Upload your timetable again to continue." });
 }
 
 export async function retryTimetableReading(fd: FormData) {
