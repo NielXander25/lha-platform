@@ -4,6 +4,8 @@ import { Submit } from "@/components/forms";
 import { currentStudent } from "@/lib/current";
 import { prisma } from "@/lib/prisma";
 import { formatPrice } from "@/lib/utils";
+import { normaliseCourseCode } from "@/lib/course-learning";
+import { Sparkles } from "lucide-react";
 
 type SearchParams = Promise<{ [key: string]: string | string[] | undefined }>;
 
@@ -16,7 +18,7 @@ const MODES = [
 export default async function CoursesStep({ searchParams }: { searchParams: SearchParams }) {
   const { student } = await currentStudent();
   const params = await searchParams;
-  const [packages, courses, chosen] = await Promise.all([
+  const [packages, courses, chosen, lectures] = await Promise.all([
     prisma.package.findMany({ where: { active: true }, orderBy: { sortOrder: "asc" } }),
     prisma.course.findMany({
       where: { active: true },
@@ -24,11 +26,16 @@ export default async function CoursesStep({ searchParams }: { searchParams: Sear
       orderBy: [{ level: "asc" }, { code: "asc" }],
     }),
     prisma.studentCourse.findMany({ where: { studentId: student.id }, select: { courseId: true } }),
+    prisma.timetableEntry.findMany({ where: { studentId: student.id }, select: { courseCode: true } }),
   ]);
   const chosenIds = new Set(chosen.map((c) => c.courseId));
-  // Courses for the student's own department and level come first.
-  const mine = courses.filter((c) => c.level === student.level && (!student.departmentId || c.departments.some((d) => d.id === student.departmentId)));
-  const others = courses.filter((c) => !mine.includes(c));
+  // Courses on the student's own timetable come first, then their department and level, then the rest.
+  const onTimetable = new Set(lectures.map((l) => normaliseCourseCode(l.courseCode)).filter(Boolean));
+  const fromTimetable = courses.filter((c) => c.code && onTimetable.has(normaliseCourseCode(c.code)));
+  const mine = courses.filter(
+    (c) => !fromTimetable.includes(c) && c.level === student.level && (!student.departmentId || c.departments.some((d) => d.id === student.departmentId)),
+  );
+  const others = courses.filter((c) => !fromTimetable.includes(c) && !mine.includes(c));
 
   const CourseBox = ({ c }: { c: (typeof courses)[number] }) => (
     <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-slate-200 p-3 has-checked:border-brand-500 has-checked:bg-brand-50">
@@ -42,7 +49,7 @@ export default async function CoursesStep({ searchParams }: { searchParams: Sear
 
   return (
     <div className="max-w-3xl">
-      <StepHeader step="Step 2 of 5" title="Courses & package" description="Pick the courses you need help with and how you'd like to be taught." />
+      <StepHeader step="Step 3 of 5" title="Courses & package" description="Pick the courses you need help with and how you'd like to be taught." />
       <FlashMessage ok={one(params.ok)} error={one(params.error)} />
       <form action={saveCourses} className="space-y-6">
         <Panel>
@@ -90,21 +97,27 @@ export default async function CoursesStep({ searchParams }: { searchParams: Sear
 
         <Panel>
           <h2 className="font-semibold text-slate-900">Courses you need help with</h2>
-          {mine.length > 0 && (
+          {fromTimetable.length > 0 && (
             <>
-              <p className="mt-1 text-sm text-slate-500">For your department and level</p>
-              <div className="mt-3 grid gap-2 sm:grid-cols-2">{mine.map((c) => <CourseBox key={c.id} c={c} />)}</div>
+              <p className="mt-1 flex items-center gap-1.5 text-sm font-medium text-brand-700">
+                <Sparkles className="size-4" /> From your timetable. Tick the ones you want tutorials for.
+              </p>
+              <div className="mt-3 grid gap-2 sm:grid-cols-2">{fromTimetable.map((c) => <CourseBox key={c.id} c={c} />)}</div>
             </>
           )}
+          {mine.length > 0 && (
+            <details className={fromTimetable.length ? "mt-5" : "mt-1"} open={fromTimetable.length === 0}>
+              <summary className="cursor-pointer text-sm font-semibold text-brand-700">Other courses for your department and level ({mine.length})</summary>
+              <div className="mt-3 grid gap-2 sm:grid-cols-2">{mine.map((c) => <CourseBox key={c.id} c={c} />)}</div>
+            </details>
+          )}
           {others.length > 0 && (
-            <details className="mt-5" open={mine.length === 0}>
-              <summary className="cursor-pointer text-sm font-semibold text-brand-700">
-                {mine.length ? "Other courses" : "All courses"} ({others.length})
-              </summary>
+            <details className="mt-5" open={mine.length === 0 && fromTimetable.length === 0}>
+              <summary className="cursor-pointer text-sm font-semibold text-brand-700">All other courses ({others.length})</summary>
               <div className="mt-3 grid gap-2 sm:grid-cols-2">{others.map((c) => <CourseBox key={c.id} c={c} />)}</div>
             </details>
           )}
-          <p className="mt-4 text-xs text-slate-500">Can&apos;t find your course? Message us and we&apos;ll add it.</p>
+          <p className="mt-4 text-xs text-slate-500">Can&apos;t find your course? Add it to your timetable in the previous step and it appears here.</p>
         </Panel>
 
         <Submit>Save and continue</Submit>

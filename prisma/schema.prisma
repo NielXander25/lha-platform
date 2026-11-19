@@ -14,25 +14,26 @@ datasource db {
 
 // A university course tutorial students can pay for, e.g. "MTH 101 – Elementary Mathematics I".
 model Course {
-  id                String          @id @default(cuid())
-  slug              String          @unique
-  code              String? // course code, e.g. "MTH 101"
-  title             String
-  category          String // subject, e.g. Mathematics, Physics, Chemistry
-  level             String // "100 Level" to "500 Level"
-  departments       Department[] // departments whose students take this course
-  tutors            TutorCourse[]
-  students          StudentCourse[]
-  summary           String
-  description       String
-  sessionsPerWeek   Int             @default(2)
-  sessionLengthMins Int             @default(60)
-  active            Boolean         @default(true)
-  createdAt         DateTime        @default(now())
-  updatedAt         DateTime        @updatedAt
-  assignments       Assignment[]
-  classes           TutorialClass[]
-  allocations       Allocation[]
+  id                 String          @id @default(cuid())
+  slug               String          @unique
+  code               String? // course code, e.g. "MTH 101"
+  title              String
+  category           String // subject, e.g. Mathematics, Physics, Chemistry
+  level              String // "100 Level" to "500 Level"
+  departments        Department[] // departments whose students take this course
+  tutors             TutorCourse[]
+  students           StudentCourse[]
+  summary            String
+  description        String
+  sessionsPerWeek    Int             @default(2)
+  sessionLengthMins  Int             @default(60)
+  active             Boolean         @default(true)
+  addedFromTimetable Boolean         @default(false) // learned automatically from a student's timetable
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+  assignments        Assignment[]
+  classes            TutorialClass[]
+  allocations        Allocation[]
 }
 
 // An engineering department, e.g. "Mechatronics Engineering".
