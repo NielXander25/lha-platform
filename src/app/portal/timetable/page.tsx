@@ -1,5 +1,5 @@
 import { Loader2, Sparkles, Trash2 } from "lucide-react";
-import { addTimetableEntry, confirmTimetable, deleteTimetableEntry, retryTimetableReading, uploadTimetable } from "../actions";
+import { addTimetableEntry, confirmTimetable, deleteTimetableEntry, deleteTimetableUpload, retryTimetableReading, uploadTimetable } from "../actions";
 import { AutoRefresh } from "@/components/auto-refresh";
 import { TimetableUploader } from "@/components/timetable-uploader";
 import { FlashMessage, Notice, one, Panel, StatusBadge, StepHeader } from "@/components/portal-ui";
@@ -94,9 +94,17 @@ export default async function TimetableStep({ searchParams }: { searchParams: Se
             )}
             <ul className="space-y-1 text-sm">
               {uploads.map((u) => (
-                <li key={u.id}>
-                  <a href={`/api/files/timetable/${u.id}`} target="_blank" className="font-medium text-brand-700 underline">{u.fileName}</a>{" "}
-                  <span className="text-slate-500">({Math.ceil(u.size / 1024)} KB)</span>
+                <li key={u.id} className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 px-3 py-2">
+                  <span className="min-w-0 truncate">
+                    <a href={`/api/files/timetable/${u.id}`} target="_blank" className="font-medium text-brand-700 underline">{u.fileName}</a>{" "}
+                    <span className="text-slate-500">({Math.ceil(u.size / 1024)} KB)</span>
+                  </span>
+                  <form action={deleteTimetableUpload}>
+                    <input type="hidden" name="id" value={u.id} />
+                    <button aria-label={`Delete ${u.fileName}`} className="flex items-center gap-1 text-xs font-semibold text-rose-600 hover:text-rose-700">
+                      <Trash2 className="size-4" /> Delete
+                    </button>
+                  </form>
                 </li>
               ))}
             </ul>
