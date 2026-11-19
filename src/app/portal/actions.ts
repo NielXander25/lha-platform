@@ -14,6 +14,7 @@ import { parseTime, slotsToRanges, SLOT_MINUTES } from "@/lib/schedule";
 import { MAX_UPLOAD_BYTES } from "@/lib/upload-limits";
 import { refreshStudentStatus, studentProgress } from "@/lib/students";
 import { extractTimetable, timetableAiConfigured } from "@/lib/timetable-ai";
+import { learnCoursesFromTimetable } from "@/lib/course-learning";
 
 function back(path: string, msg: { ok?: string; error?: string }): never {
   const qs = new URLSearchParams(msg as Record<string, string>).toString();
@@ -44,7 +45,7 @@ export async function saveProfile(fd: FormData) {
     prisma.studentProfile.update({ where: { id: student.id }, data: { ...rest, matricNumber: matricNumber || null } }),
   ]);
   await refreshStudentStatus(student.id);
-  redirect("/portal/courses");
+  redirect("/portal/timetable");
 }
 
 /* ---------- Step 2: courses, package, billing, teaching mode ---------- */
@@ -74,7 +75,7 @@ export async function saveCourses(fd: FormData) {
     prisma.studentCourse.createMany({ data: validCourses.map((c) => ({ studentId: student.id, courseId: c.id })) }),
   ]);
   await refreshStudentStatus(student.id);
-  redirect("/portal/timetable");
+  redirect("/portal/availability");
 }
 
 /* ---------- Step 3: university timetable ---------- */
@@ -156,6 +157,7 @@ export async function addTimetableEntry(fd: FormData) {
   });
   // Any change means the student must look over and confirm the timetable again.
   await prisma.studentProfile.update({ where: { id: student.id }, data: { timetableConfirmed: false } });
+  await learnCoursesFromTimetable(student.id);
   await refreshStudentStatus(student.id);
   back("/portal/timetable", { ok: "Lecture added." });
 }
@@ -185,8 +187,10 @@ export async function confirmTimetable() {
   if (processing > 0) await prisma.timetableUpload.updateMany({ where: { studentId: student.id, status: "PROCESSING" }, data: { status: "UPLOADED" } });
   await prisma.studentProfile.update({ where: { id: student.id }, data: { timetableConfirmed: true } });
   await audit({ actorId: user.id, action: "timetable.confirmed", entity: "StudentProfile", entityId: student.id, details: { entries: count } });
+  // Learn any new courses from the timetable, then let the student pick from them.
+  await learnCoursesFromTimetable(student.id, user.id);
   await refreshStudentStatus(student.id);
-  redirect("/portal/availability");
+  redirect("/portal/courses");
 }
 
 /* ---------- Step 4: availability ---------- */

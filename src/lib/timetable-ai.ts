@@ -7,6 +7,7 @@ import { audit } from "@/lib/audit";
 import { prisma } from "@/lib/prisma";
 import { DAYS, parseTime } from "@/lib/schedule";
 import { refreshStudentStatus } from "@/lib/students";
+import { learnCoursesFromTimetable } from "@/lib/course-learning";
 
 // Reads an uploaded university timetable (PDF or image) with an AI model and turns it into
 // draft timetable entries. Students always review and confirm the result: extraction is
@@ -116,6 +117,7 @@ export async function extractTimetable(uploadId: string) {
       prisma.studentProfile.update({ where: { id: upload.studentId }, data: { timetableConfirmed: false } }),
     ]);
     await audit({ action: "timetable.extracted", entity: "TimetableUpload", entityId: upload.id, details: { entries: entries.length, readable: result.readable, model } });
+    await learnCoursesFromTimetable(upload.studentId);
   } catch (error) {
     console.error(`Timetable read failed after ${Date.now() - started} ms`, uploadId, error);
     await prisma.timetableUpload.updateMany({ where: { id: uploadId, status: "PROCESSING" }, data: { status: "FAILED" } });

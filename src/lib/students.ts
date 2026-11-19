@@ -22,8 +22,8 @@ const LOCKED = new Set(["PAYMENT_VERIFIED", "AWAITING_ALLOCATION", "ALLOCATED", 
 
 export const ONBOARDING_STEPS = [
   { key: "profile", label: "Academic profile", href: "/portal/profile" },
-  { key: "courses", label: "Courses & package", href: "/portal/courses" },
   { key: "timetable", label: "Upload your university timetable", href: "/portal/timetable" },
+  { key: "courses", label: "Courses & package", href: "/portal/courses" },
   { key: "availability", label: "Availability", href: "/portal/availability" },
   { key: "payment", label: "Payment", href: "/portal/payment" },
 ] as const;
@@ -65,7 +65,8 @@ export async function refreshStudentStatus(studentId: string) {
     return "AWAITING_ALLOCATION";
   }
   const processing = await prisma.timetableUpload.count({ where: { studentId, status: "PROCESSING" } });
-  const status = !done.profile || !done.courses
+  // Order: profile, then timetable (courses are picked from it), then courses, then availability.
+  const status = !done.profile
     ? "PROFILE_INCOMPLETE"
     : processing > 0
       ? "TIMETABLE_PROCESSING"
@@ -73,7 +74,7 @@ export async function refreshStudentStatus(studentId: string) {
       ? student._count.timetableEntries > 0 && student._count.timetableUploads > 0
         ? "AWAITING_TIMETABLE_CONFIRMATION"
         : "AWAITING_TIMETABLE"
-      : !done.availability
+      : !done.courses || !done.availability
         ? "PROFILE_INCOMPLETE"
         : pendingPayment
           ? "PAYMENT_PENDING"

@@ -37,7 +37,7 @@ export default async function TimetableStep({ searchParams }: { searchParams: Se
     <div className="max-w-3xl space-y-6">
       {processing && <AutoRefresh />}
       <StepHeader
-        step="Step 3 of 5"
+        step="Step 2 of 5"
         title="University timetable"
         description="Upload your official timetable. We schedule tutorials around your lectures, so it's required."
       />
