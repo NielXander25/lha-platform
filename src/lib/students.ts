@@ -36,11 +36,12 @@ export async function studentProgress(studentId: string) {
       _count: { select: { courses: true, timetableEntries: true, timetableUploads: true } },
     },
   });
-  const [availability, pendingPayment] = await Promise.all([
+  const [availability, pendingPayment, activeSubscription] = await Promise.all([
     prisma.availability.count({ where: { userId: s.userId, kind: "AVAILABLE" } }),
     prisma.payment.count({
       where: { invoice: { studentId, status: { in: ["UNPAID", "PARTIALLY_PAID"] } }, status: { in: ["PENDING", "UNDER_REVIEW"] }, method: "BANK_TRANSFER" },
     }),
+    prisma.subscription.count({ where: { studentId, status: "ACTIVE", endsAt: { gt: new Date() } } }),
   ]);
   const done = {
     profile: Boolean(s.departmentId && s.level && s.semester && s.user.phone),
@@ -48,7 +49,8 @@ export async function studentProgress(studentId: string) {
     // A timetable counts only once a file is uploaded and the student has confirmed the entries.
     timetable: s.timetableConfirmed && s._count.timetableUploads > 0,
     availability: availability > 0,
-    payment: LOCKED.has(s.status),
+    // Paid (or given free access by staff): an active subscription counts as payment done.
+    payment: LOCKED.has(s.status) || activeSubscription > 0,
   };
   return { student: s, done, pendingPayment: pendingPayment > 0 };
 }
@@ -57,6 +59,11 @@ export async function studentProgress(studentId: string) {
 export async function refreshStudentStatus(studentId: string) {
   const { student, done, pendingPayment } = await studentProgress(studentId);
   if (LOCKED.has(student.status)) return student.status;
+  // Free access granted before the student finished onboarding: queue them once everything is in.
+  if (done.payment && done.profile && done.courses && done.timetable && done.availability) {
+    await prisma.studentProfile.update({ where: { id: studentId }, data: { status: "AWAITING_ALLOCATION" } });
+    return "AWAITING_ALLOCATION";
+  }
   const processing = await prisma.timetableUpload.count({ where: { studentId, status: "PROCESSING" } });
   const status = !done.profile || !done.courses
     ? "PROFILE_INCOMPLETE"

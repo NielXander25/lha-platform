@@ -45,7 +45,7 @@ export default async function PaymentStep({ searchParams }: { searchParams: Sear
           Finish the earlier steps first. <Link href="/portal" className="font-semibold underline">See what&apos;s left</Link>
         </Notice>
       ) : done.payment ? (
-        <Notice tone="success">Your payment is verified and your subscription is active.</Notice>
+        <Notice tone="success">Your subscription is active. Nothing to pay right now.</Notice>
       ) : (
         <>
           <Panel>

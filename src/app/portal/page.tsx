@@ -80,7 +80,9 @@ export default async function PortalHome({ searchParams }: { searchParams: Searc
               <div className="mt-3 text-sm text-slate-700">
                 <p className="font-display text-xl font-semibold text-brand-900">{subscription.package.name}</p>
                 <p className="mt-1">
-                  {formatPrice(subscription.amount)} · {subscription.months === 1 ? "monthly" : `${subscription.months} months`}
+                  {subscription.cycle === "COMPLIMENTARY"
+                    ? "Free access from Learning Hub"
+                    : `${formatPrice(subscription.amount)} · ${subscription.months === 1 ? "monthly" : `${subscription.months} months`}`}
                 </p>
                 <p className="mt-1 text-slate-500">
                   Active until {subscription.endsAt ? dateFmt.format(subscription.endsAt) : "—"}
