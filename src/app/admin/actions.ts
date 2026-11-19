@@ -258,6 +258,8 @@ export async function reviewTutor(formData: FormData) {
     where: { id },
     data: { status: decision, reviewNote: note, approvedAt: decision === "APPROVED" ? new Date() : null, active: decision === "APPROVED" },
   });
+  // Approving a tutor also approves every course they chose; staff can still remove any one.
+  if (decision === "APPROVED") await prisma.tutorCourse.updateMany({ where: { tutorId: id }, data: { approved: true } });
   await audit({ actorId: user.id, action: `tutor.${decision.toLowerCase()}`, entity: "Tutor", entityId: id, details: { note } });
   if (decision === "APPROVED") (await import("@/lib/matching/respond")).scheduleMatching();
   revalidatePath("/admin", "layout");

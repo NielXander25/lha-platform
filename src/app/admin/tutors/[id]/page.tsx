@@ -78,8 +78,10 @@ export default async function TutorReview({ params, searchParams }: { params: Pr
 
         <div className="space-y-6">
           <Panel>
-            <h2 className="font-semibold text-slate-900">Course competencies</h2>
-            <p className="mt-1 text-sm text-slate-500">Only approved courses count for matching.</p>
+            <h2 className="font-semibold text-slate-900">Courses this tutor can teach</h2>
+            <p className="mt-1 text-sm text-slate-500">
+              Approving the tutor approves all of these at once. Remove any course they shouldn&apos;t teach; students are only matched for approved courses.
+            </p>
             <ul className="mt-3 divide-y divide-slate-100 text-sm">
               {tutor.courses.map((tc) => (
                 <li key={tc.courseId} className="flex items-center justify-between gap-3 py-2">
@@ -89,7 +91,7 @@ export default async function TutorReview({ params, searchParams }: { params: Pr
                     <input type="hidden" name="courseId" value={tc.courseId} />
                     <input type="hidden" name="approved" value={String(!tc.approved)} />
                     <button className={tc.approved ? "text-xs font-semibold text-rose-600 hover:underline" : "rounded-lg bg-emerald-600 px-3 py-1 text-xs font-semibold text-white"}>
-                      {tc.approved ? "Revoke" : "Approve"}
+                      {tc.approved ? "Remove" : "Approve"}
                     </button>
                   </form>
                 </li>
