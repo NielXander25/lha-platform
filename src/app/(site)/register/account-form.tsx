@@ -30,6 +30,7 @@ export function AccountForm({
           I agree that Learning Hub Africa may store and use the information I provide
           {role === "STUDENT" ? ", including my academic details and timetable," : ", including my qualifications and availability,"} to
           organise tutorials, in line with the Nigeria Data Protection Act.
+          {role === "STUDENT" && " I understand my uploaded timetable is read by an automated AI service to fill in my lectures, which I then check."}
         </span>
       </label>
       <Submit className="w-full">Create account</Submit>
