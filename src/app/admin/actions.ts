@@ -416,3 +416,39 @@ export async function adminCancelClass(formData: FormData) {
   revalidatePath("/admin", "layout");
   redirect(`${back.startsWith("/admin") ? back : "/admin/matching"}?ok=${encodeURIComponent("Class cancelled. Its students are back in the queue.")}`);
 }
+
+/* ---------- Free access (testing, scholarships) ---------- */
+
+export async function grantFreeAccess(formData: FormData) {
+  const user = await requireAdmin();
+  const studentId = String(formData.get("studentId") ?? "");
+  const months = Math.min(12, Math.max(1, Number(formData.get("months") ?? 1) || 1));
+  const back = `/admin/students/${studentId}`;
+  const student = await prisma.studentProfile.findUniqueOrThrow({ where: { id: studentId } });
+  if (!student.packageId) fail(back, "The student needs to choose a package first (step 2 of registration).");
+  const now = new Date();
+  if (await prisma.subscription.count({ where: { studentId, status: "ACTIVE", endsAt: { gt: now } } })) {
+    fail(back, "This student already has an active subscription.");
+  }
+  const endsAt = new Date(now);
+  endsAt.setMonth(endsAt.getMonth() + months);
+
+  await prisma.$transaction(async (tx) => {
+    // Unpaid invoices are no longer needed; anything with money on it is left for finance.
+    const open = await tx.invoice.findMany({ where: { studentId, status: "UNPAID", amountPaid: 0 } });
+    for (const inv of open) {
+      await tx.invoice.update({ where: { id: inv.id }, data: { status: "VOID" } });
+      await tx.subscription.update({ where: { id: inv.subscriptionId }, data: { status: "CANCELLED" } });
+    }
+    // Recorded as a free subscription with no payment, so revenue figures stay accurate.
+    const sub = await tx.subscription.create({
+      data: { studentId, packageId: student.packageId!, cycle: "COMPLIMENTARY", months, amount: 0, status: "ACTIVE", startsAt: now, endsAt },
+    });
+    await audit({ actorId: user.id, action: "subscription.complimentary", entity: "Subscription", entityId: sub.id, details: { studentId, months } }, tx);
+  });
+  const { refreshStudentStatus } = await import("@/lib/students");
+  await refreshStudentStatus(studentId);
+  (await import("@/lib/matching/respond")).scheduleMatching();
+  revalidatePath("/admin", "layout");
+  redirect(`${back}?ok=${encodeURIComponent(`Free access granted for ${months} month${months === 1 ? "" : "s"}.`)}`);
+}

@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import { setStudentSuspended } from "../../actions";
-import { Panel, StatusBadge } from "@/components/portal-ui";
+import { grantFreeAccess, setStudentSuspended } from "../../actions";
+import { FlashMessage, Panel, StatusBadge } from "@/components/portal-ui";
 import { PackageMark, StageMark } from "@/components/student-marks";
 import { requireUser } from "@/lib/auth";
 import { PAYMENT_STATUS_LABELS } from "@/lib/billing";
@@ -13,9 +13,10 @@ import { formatPrice } from "@/lib/utils";
 
 const dateFmt = new Intl.DateTimeFormat("en-NG", { dateStyle: "medium", timeZone: "Africa/Lagos" });
 
-export default async function StudentDetail({ params }: { params: Promise<{ id: string }> }) {
+export default async function StudentDetail({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
   const viewer = await requireUser(["ADMIN", "SUPPORT", "FINANCE"]);
   const { id } = await params;
+  const sp = await searchParams;
   const s = await prisma.studentProfile.findUnique({
     where: { id },
     include: {
@@ -26,6 +27,7 @@ export default async function StudentDetail({ params }: { params: Promise<{ id: 
       timetableEntries: { orderBy: [{ day: "asc" }, { startMin: "asc" }] },
       timetableUploads: { select: { id: true, fileName: true, createdAt: true } },
       invoices: { include: { payments: true, subscription: { include: { package: true } } }, orderBy: { createdAt: "desc" } },
+      subscriptions: { where: { status: "ACTIVE" }, include: { package: true }, orderBy: { endsAt: "desc" } },
     },
   });
   if (!s) notFound();
@@ -47,6 +49,33 @@ export default async function StudentDetail({ params }: { params: Promise<{ id: 
           <span className="text-xs text-slate-500">{STUDENT_STATUS_LABELS[s.status] ?? s.status}</span>
         </div>
       </header>
+
+      <FlashMessage ok={typeof sp.ok === "string" ? sp.ok : undefined} error={typeof sp.error === "string" ? sp.error : undefined} />
+      {s.subscriptions[0] && (
+        <Panel className="text-sm">
+          <p className="font-semibold text-slate-900">
+            Active subscription: {s.subscriptions[0].package.name}
+            {s.subscriptions[0].cycle === "COMPLIMENTARY" && <span className="ml-2"><StatusBadge label="Free access" tone="info" /></span>}
+          </p>
+          <p className="text-slate-500">Until {s.subscriptions[0].endsAt ? dateFmt.format(s.subscriptions[0].endsAt) : "—"}</p>
+        </Panel>
+      )}
+      {viewer.role === "ADMIN" && s.subscriptions.length === 0 && (
+        <Panel className="flex flex-wrap items-center justify-between gap-3">
+          <div className="text-sm">
+            <p className="font-semibold text-slate-900">Free access</p>
+            <p className="text-slate-500">For testing or scholarships. Activates the chosen package without payment and is recorded in the audit log.</p>
+          </div>
+          <form action={grantFreeAccess} className="flex items-center gap-2">
+            <input type="hidden" name="studentId" value={s.id} />
+            <select name="months" defaultValue="1" className="rounded-lg border border-slate-300 bg-white px-2 py-2 text-sm" aria-label="Months">
+              <option value="1">1 month</option>
+              <option value="3">3 months</option>
+            </select>
+            <button className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">Give free access</button>
+          </form>
+        </Panel>
+      )}
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Panel>
