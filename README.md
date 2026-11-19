@@ -2,12 +2,25 @@
 
 Website and admin tool for Learning Hub Africa's paid tutorials for Air Force Institute of Technology (AFIT) students.
 
-- **Public site** (no sign-up; students are visitors): home page about the organisation, a tutorials
-  catalogue (by course code, e.g. MTH 101) with the three pricing tiers and department/level (100–500)/venue filters (`/tutorials`), and a page per tutorial
-  showing its tutors, locations and schedules, with WhatsApp/phone/email contact buttons. Each pricing tier is a card that leads to `/checkout` for
-  that course and tier (online payment via Paystack is not connected yet; the pay button is a placeholder).
-- **Admin** (`/admin`, password protected): assign tutors to tutorials along with a location (and an
-  optional schedule), manage courses (level, departments), pricing tiers, departments, tutors and locations.
+Built in milestones from the Paid Tutorial Management System specification.
+
+**Milestone 1 (done):**
+- **Public site**: home page, AFIT course catalogue, packages and pricing.
+- **Accounts & roles**: students, tutors, administrators, finance officers and support officers, with
+  hashed passwords, 14-day sessions, login lockout after repeated failures and role checks on every page and action.
+- **Student registration**: account → academic profile → courses, package (monthly or 3 months) and
+  teaching mode → timetable upload + lecture entry and confirmation → weekly availability → payment.
+  Each student gets an ID (e.g. `LHA-26-0001`) and a registration status.
+- **Tutor registration**: profile, qualifications, credential uploads, courses, teaching mode, workload
+  and weekly availability. Admins approve the tutor and each course competency.
+- **Payments**: invoices and subscriptions; Paystack (server-side verification, signed webhooks,
+  idempotent settlement) once `PAYSTACK_SECRET_KEY` is set; bank transfers reconciled by finance against
+  the bank statement reference. Payment activates the subscription and queues the student for allocation.
+- **Staff dashboard**: overview figures, students, tutor approvals, payments, packages, courses,
+  departments, locations, staff accounts and an audit log.
+
+**Next:** automatic timetable reading (OCR/AI), the student–tutor allocation engine, class scheduling,
+calendar sync, notifications (email/push/WhatsApp), complaints and feedback, and reports.
 
 ## Stack
 
@@ -16,15 +29,15 @@ Next.js 16 (App Router, Server Actions) · TypeScript · Tailwind CSS 4 · Prism
 ## Getting started
 
 ```bash
-cp .env.example .env      # set DATABASE_URL, DIRECT_URL and ADMIN_PASSWORD
+cp .env.example .env      # set DATABASE_URL, DIRECT_URL, ADMIN_EMAIL, ADMIN_PASSWORD
 npm install
 npx prisma migrate deploy # create the tables
 npm run db:seed           # load starter pricing tiers, departments, courses, tutors and AFIT venues
 npm run dev
 ```
 
-Open http://localhost:3000. The admin area is at http://localhost:3000/admin. The browser asks for a
-username and password: use any username and the `ADMIN_PASSWORD` from `.env`.
+Open http://localhost:3000. Log in at `/login` with `ADMIN_EMAIL` / `ADMIN_PASSWORD` to create the first
+administrator; after that, add other staff under **Staff accounts**.
 
 ## Scripts
 

@@ -1,110 +1,100 @@
 import Link from "next/link";
-import { connection } from "next/server";
-import { Trash2 } from "lucide-react";
-import { createAssignment, deleteAssignment, updateAssignmentSchedule } from "./actions";
-import { Card, ErrorBanner, PageHeader, SubmitButton, firstString, inputClass } from "@/components/admin-ui";
+import { PageHeader } from "@/components/admin-ui";
+import { Panel } from "@/components/portal-ui";
+import { requireUser, STAFF_ROLES } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { cn } from "@/lib/utils";
+import { formatPrice } from "@/lib/utils";
 
-type SearchParams = Promise<{ [key: string]: string | string[] | undefined }>;
+export default async function AdminOverview() {
+  const user = await requireUser(STAFF_ROLES);
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
-export default async function AssignmentsPage({ searchParams }: { searchParams: SearchParams }) {
-  await connection();
-  const params = await searchParams;
-
-  const [courses, tutors, locations] = await Promise.all([
-    prisma.course.findMany({
-      orderBy: [{ active: "desc" }, { level: "asc" }, { code: "asc" }, { title: "asc" }],
-      include: {
-        assignments: {
-          include: { tutor: true, location: true },
-          orderBy: [{ location: { kind: "desc" } }, { location: { name: "asc" } }],
-        },
-      },
-    }),
-    prisma.tutor.findMany({ where: { active: true }, orderBy: { name: "asc" } }),
-    prisma.location.findMany({ where: { active: true }, orderBy: [{ kind: "desc" }, { name: "asc" }] }),
+  const [
+    students,
+    activeSubs,
+    pendingTransfers,
+    verifiedThisMonth,
+    approvedTutors,
+    pendingTutors,
+    awaitingAllocation,
+    byDepartment,
+    byPackage,
+  ] = await Promise.all([
+    prisma.studentProfile.count(),
+    prisma.subscription.count({ where: { status: "ACTIVE", endsAt: { gt: now } } }),
+    prisma.payment.count({ where: { status: "UNDER_REVIEW" } }),
+    prisma.payment.aggregate({ where: { status: { in: ["VERIFIED", "OVERPAID", "PARTIALLY_PAID"] }, verifiedAt: { gte: monthStart } }, _sum: { amountReceived: true }, _count: true }),
+    prisma.tutor.count({ where: { status: "APPROVED", active: true } }),
+    prisma.tutor.count({ where: { status: "PENDING", userId: { not: null } } }),
+    prisma.studentProfile.count({ where: { status: "AWAITING_ALLOCATION" } }),
+    prisma.studentProfile.groupBy({ by: ["departmentId"], _count: true }),
+    prisma.subscription.groupBy({ by: ["packageId"], where: { status: "ACTIVE", endsAt: { gt: now } }, _count: true, _sum: { amount: true } }),
   ]);
+  const [departments, packages] = await Promise.all([
+    prisma.department.findMany({ select: { id: true, name: true } }),
+    prisma.package.findMany({ select: { id: true, name: true }, orderBy: { sortOrder: "asc" } }),
+  ]);
+  const deptName = new Map(departments.map((d) => [d.id, d.name]));
+  const finance = user.role !== "SUPPORT";
 
-  const unassigned = courses.filter((c) => c.active && c.assignments.length === 0).length;
-  const locLabel = (l: { name: string; kind: string }) => `${l.name} (${l.kind})`;
+  const stats = [
+    { label: "Registered students", value: students, href: "/admin/students" },
+    { label: "Active subscriptions", value: activeSubs, href: "/admin/students?status=AWAITING_ALLOCATION" },
+    ...(finance
+      ? [
+          { label: "Transfers to verify", value: pendingTransfers, href: "/admin/payments", alert: pendingTransfers > 0 },
+          { label: "Verified this month", value: formatPrice(verifiedThisMonth._sum.amountReceived ?? 0), href: "/admin/payments?status=VERIFIED" },
+        ]
+      : []),
+    { label: "Approved tutors", value: approvedTutors, href: "/admin/tutors" },
+    { label: "Tutor applications", value: pendingTutors, href: "/admin/tutors?status=PENDING", alert: pendingTutors > 0 },
+    { label: "Awaiting allocation", value: awaitingAllocation, href: "/admin/students?status=AWAITING_ALLOCATION", alert: awaitingAllocation > 0 },
+  ];
 
   return (
-    <div>
-      <PageHeader
-        title="Tutor assignments"
-        description="Assign tutors to each tutorial along with a location. Visitors see these on the tutorial's page."
-      />
-      <ErrorBanner message={firstString(params.error)} />
-      {unassigned > 0 && (
-        <p className="mb-6 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-          {unassigned} visible tutorial{unassigned === 1 ? " has" : "s have"} no tutor yet.
-        </p>
-      )}
-
-      <div className="space-y-5">
-        {courses.map((c) => (
-          <Card key={c.id} className={cn("p-5", !c.active && "opacity-60")}>
-            <div className="flex flex-wrap items-start justify-between gap-2">
-              <div>
-                <Link href={`/tutorials/${c.slug}`} className="font-semibold text-slate-900 hover:text-brand-700">
-                  {c.code ? `${c.code}: ` : ""}{c.title}
-                </Link>
-                <p className="text-sm text-slate-500">
-                  {c.category} · {c.level}
-                  {!c.active && " · hidden from visitors"}
-                </p>
-              </div>
-              <span className="text-xs font-semibold text-slate-500">
-                {c.assignments.length} assignment{c.assignments.length === 1 ? "" : "s"}
-              </span>
-            </div>
-
-            {c.assignments.length > 0 && (
-              <ul className="mt-4 divide-y divide-slate-100 rounded-xl border border-slate-200">
-                {c.assignments.map((a) => (
-                  <li key={a.id} className="grid gap-3 px-4 py-3 text-sm md:grid-cols-[1fr_1fr_1.3fr_auto] md:items-center">
-                    <span className={cn("font-medium text-slate-800", !a.tutor.active && "text-slate-400 line-through")}>
-                      {a.tutor.name}
-                    </span>
-                    <span className={cn("text-slate-600", !a.location.active && "text-slate-400 line-through")}>
-                      {locLabel(a.location)}
-                    </span>
-                    <form key={a.schedule ?? ""} action={updateAssignmentSchedule} className="flex gap-2">
-                      <input type="hidden" name="id" value={a.id} />
-                      <input name="schedule" defaultValue={a.schedule ?? ""} placeholder="Schedule, e.g. Tue & Thu, 4 pm" className={inputClass} aria-label="Schedule" />
-                      <SubmitButton variant="ghost">Save</SubmitButton>
-                    </form>
-                    <form action={deleteAssignment}>
-                      <input type="hidden" name="id" value={a.id} />
-                      <button className="flex items-center gap-1 text-xs font-semibold text-rose-600 hover:underline" aria-label={`Remove ${a.tutor.name} at ${a.location.name}`}>
-                        <Trash2 className="size-3.5" /> Remove
-                      </button>
-                    </form>
-                  </li>
-                ))}
-              </ul>
-            )}
-
-            <form action={createAssignment} className="mt-4 grid gap-2 sm:grid-cols-[1fr_1fr_1fr_auto]">
-              <input type="hidden" name="courseId" value={c.id} />
-              <select name="tutorId" required defaultValue="" className={inputClass} aria-label="Tutor">
-                <option value="" disabled>Choose tutor…</option>
-                {tutors.map((t) => (
-                  <option key={t.id} value={t.id}>{t.name} · {t.subjects}</option>
-                ))}
-              </select>
-              <select name="locationId" required defaultValue="" className={inputClass} aria-label="Location">
-                <option value="" disabled>Choose location…</option>
-                {locations.map((l) => (
-                  <option key={l.id} value={l.id}>{locLabel(l)}</option>
-                ))}
-              </select>
-              <input name="schedule" placeholder="Schedule (optional)" className={inputClass} aria-label="Schedule" />
-              <SubmitButton>Assign</SubmitButton>
-            </form>
-          </Card>
+    <div className="space-y-6">
+      <PageHeader title="Overview" description={`Signed in as ${user.name}.`} />
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        {stats.map((s) => (
+          <Link key={s.label} href={s.href} className="rounded-2xl border border-slate-200 bg-white p-4 transition hover:border-brand-300">
+            <p className={`font-display text-2xl font-semibold sm:text-3xl ${s.alert ? "text-amber-600" : "text-brand-800"}`}>{s.value}</p>
+            <p className="mt-1 text-sm text-slate-500">{s.label}</p>
+          </Link>
         ))}
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Panel>
+          <h2 className="font-semibold text-slate-900">Students by department</h2>
+          <ul className="mt-3 space-y-2 text-sm">
+            {byDepartment.sort((a, b) => b._count - a._count).map((d) => (
+              <li key={d.departmentId ?? "none"} className="flex justify-between gap-3">
+                <span className="text-slate-700">{d.departmentId ? deptName.get(d.departmentId) : "Not set yet"}</span>
+                <span className="font-semibold text-slate-900">{d._count}</span>
+              </li>
+            ))}
+            {byDepartment.length === 0 && <li className="text-slate-500">No students yet.</li>}
+          </ul>
+        </Panel>
+        {finance && (
+          <Panel>
+            <h2 className="font-semibold text-slate-900">Active subscriptions by package</h2>
+            <ul className="mt-3 space-y-2 text-sm">
+              {packages.map((p) => {
+                const row = byPackage.find((b) => b.packageId === p.id);
+                return (
+                  <li key={p.id} className="flex justify-between gap-3">
+                    <span className="text-slate-700">{p.name}</span>
+                    <span className="font-semibold text-slate-900">
+                      {row?._count ?? 0} · {formatPrice(row?._sum.amount ?? 0)}
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+          </Panel>
+        )}
       </div>
     </div>
   );

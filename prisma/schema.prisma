@@ -14,53 +14,90 @@ datasource db {
 
 // A university course tutorial students can pay for, e.g. "MTH 101 – Elementary Mathematics I".
 model Course {
-  id          String       @id @default(cuid())
-  slug        String       @unique
-  code        String?      // course code, e.g. "MTH 101"
-  title       String
-  category    String       // subject, e.g. Mathematics, Physics, Chemistry
-  level       String       // "100 Level" to "500 Level"
-  departments Department[] // departments whose students take this course
-  summary     String
-  description String
-  sessionsPerWeek Int      @default(2)
-  sessionLengthMins Int    @default(60)
-  active      Boolean      @default(true)
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-  assignments Assignment[]
+  id                String          @id @default(cuid())
+  slug              String          @unique
+  code              String? // course code, e.g. "MTH 101"
+  title             String
+  category          String // subject, e.g. Mathematics, Physics, Chemistry
+  level             String // "100 Level" to "500 Level"
+  departments       Department[] // departments whose students take this course
+  tutors            TutorCourse[]
+  students          StudentCourse[]
+  summary           String
+  description       String
+  sessionsPerWeek   Int             @default(2)
+  sessionLengthMins Int             @default(60)
+  active            Boolean         @default(true)
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  assignments       Assignment[]
 }
 
 // An engineering department, e.g. "Mechatronics Engineering".
 model Department {
-  id        String   @id @default(cuid())
-  name      String   @unique
-  active    Boolean  @default(true)
-  createdAt DateTime @default(now())
+  id        String           @id @default(cuid())
+  name      String           @unique
+  active    Boolean          @default(true)
+  createdAt DateTime         @default(now())
   courses   Course[]
+  tutors    Tutor[]
+  students  StudentProfile[]
 }
 
-// A pricing option that applies to every course, e.g. "One-on-one" at 10,000.
-model PricingTier {
-  id          String   @id @default(cuid())
-  name        String
-  ratio       String   // short label, e.g. "1 student : 1 tutor"
-  description String
-  price       Int      // whole Naira
-  sortOrder   Int      @default(0)
-  createdAt   DateTime @default(now())
-}
-
+// A tutor. Self-registered tutors have a user account and start as PENDING until an
+// administrator approves them; tutors created by admins have no account.
 model Tutor {
-  id          String       @id @default(cuid())
-  name        String
-  email       String       @unique
-  phone       String?
-  subjects    String       // comma-separated list of subjects
-  bio         String?
-  active      Boolean      @default(true)
-  createdAt   DateTime     @default(now())
+  id                  String    @id @default(cuid())
+  userId              String?   @unique
+  name                String
+  email               String    @unique
+  phone               String?
+  subjects            String // free-text summary, e.g. "Mathematics, Physics"
+  bio                 String?
+  departmentId        String?
+  qualifications      String?
+  experienceYears     Int?
+  teachingMode        String    @default("IN_PERSON") // IN_PERSON | ONLINE | BOTH
+  preferredLocationId String?
+  maxWeeklyHours      Int       @default(10)
+  maxClassCapacity    Int       @default(10)
+  status              String    @default("PENDING") // PENDING | APPROVED | REJECTED | SUSPENDED
+  reviewNote          String?
+  approvedAt          DateTime?
+  active              Boolean   @default(true)
+  createdAt           DateTime  @default(now())
+
+  user        User?             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  department  Department?       @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  courses     TutorCourse[]
+  credentials TutorCredential[]
   assignments Assignment[]
+
+  @@index([status])
+}
+
+// A course a tutor says they can teach. Admins approve each competency separately.
+model TutorCourse {
+  tutorId  String
+  courseId String
+  approved Boolean @default(false)
+
+  tutor  Tutor  @relation(fields: [tutorId], references: [id], onDelete: Cascade)
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@id([tutorId, courseId])
+}
+
+model TutorCredential {
+  id        String   @id @default(cuid())
+  tutorId   String
+  fileName  String
+  mimeType  String
+  size      Int
+  data      Bytes
+  createdAt DateTime @default(now())
+
+  tutor Tutor @relation(fields: [tutorId], references: [id], onDelete: Cascade)
 }
 
 // Where a tutorial holds on campus, e.g. "LR 101" or "Hall C1".
@@ -79,7 +116,7 @@ model Assignment {
   courseId   String
   tutorId    String
   locationId String
-  schedule   String?  // free text, e.g. "Tue & Thu, 4:00 pm"
+  schedule   String? // free text, e.g. "Tue & Thu, 4:00 pm"
   createdAt  DateTime @default(now())
 
   course   Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
@@ -87,4 +124,228 @@ model Assignment {
   location Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
 
   @@unique([courseId, tutorId, locationId])
+}
+
+// ---------- Accounts ----------
+
+// Everyone who can sign in. `role` is one of STUDENT | TUTOR | ADMIN | FINANCE | SUPPORT.
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  phone        String?
+  name         String
+  passwordHash String
+  role         String
+  active       Boolean   @default(true)
+  lastLoginAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  sessions     Session[]
+  student      StudentProfile?
+  tutor        Tutor?
+  availability Availability[]
+  auditLogs    AuditLog[]
+}
+
+// A signed-in browser. The cookie holds a random token; only its SHA-256 hash is stored.
+model Session {
+  id        String   @id // sha256(token)
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+// ---------- Students ----------
+
+model StudentProfile {
+  id                 String   @id @default(cuid())
+  userId             String   @unique
+  studentCode        String   @unique // e.g. LHA-26-0001
+  institution        String   @default("Air Force Institute of Technology")
+  departmentId       String?
+  level              String?
+  semester           String? // FIRST | SECOND
+  matricNumber       String?
+  teachingMode       String   @default("IN_PERSON") // IN_PERSON | ONLINE | BOTH
+  packageId          String?
+  billingCycle       String   @default("MONTHLY") // MONTHLY | QUARTERLY
+  timetableConfirmed Boolean  @default(false) // student has reviewed and confirmed their lectures
+  status             String   @default("PROFILE_INCOMPLETE")
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  department       Department?       @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  package          Package?          @relation(fields: [packageId], references: [id], onDelete: SetNull)
+  courses          StudentCourse[]
+  timetableUploads TimetableUpload[]
+  timetableEntries TimetableEntry[]
+  subscriptions    Subscription[]
+  invoices         Invoice[]
+
+  @@index([status])
+}
+
+model StudentCourse {
+  studentId String
+  courseId  String
+
+  student StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  course  Course         @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@id([studentId, courseId])
+}
+
+// An uploaded university timetable, stored privately in the database.
+model TimetableUpload {
+  id        String   @id @default(cuid())
+  studentId String
+  fileName  String
+  mimeType  String
+  size      Int
+  data      Bytes
+  status    String   @default("UPLOADED") // UPLOADED | PROCESSING | EXTRACTED | FAILED
+  createdAt DateTime @default(now())
+
+  student StudentProfile   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  entries TimetableEntry[]
+}
+
+// One lecture/lab period from a student's university timetable. Times are minutes from midnight.
+model TimetableEntry {
+  id           String   @id @default(cuid())
+  studentId    String
+  uploadId     String?
+  courseCode   String
+  courseTitle  String?
+  day          Int // 0 = Monday ... 6 = Sunday
+  startMin     Int
+  endMin       Int
+  venue        String?
+  activityType String? // Lecture | Practical | Tutorial | ...
+  confidence   Float? // from automatic extraction
+  source       String   @default("MANUAL") // MANUAL | EXTRACTED
+  createdAt    DateTime @default(now())
+
+  student StudentProfile   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  upload  TimetableUpload? @relation(fields: [uploadId], references: [id], onDelete: SetNull)
+
+  @@index([studentId])
+}
+
+// Weekly recurring availability for students and tutors, in 30-minute aligned ranges.
+model Availability {
+  id       String @id @default(cuid())
+  userId   String
+  day      Int // 0 = Monday ... 6 = Sunday
+  startMin Int
+  endMin   Int
+  kind     String @default("AVAILABLE") // AVAILABLE | UNAVAILABLE
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+// ---------- Packages & payments ----------
+
+// A tutorial package, e.g. General Group (5,000/month). Configurable by admins.
+model Package {
+  id              String   @id @default(cuid())
+  code            String   @unique // GENERAL | SEMI_PRIVATE | PRIVATE
+  name            String
+  ratio           String
+  description     String
+  monthlyPrice    Int // whole Naira
+  quarterlyPrice  Int // whole Naira, for three months paid upfront
+  capacity        Int // students per tutor
+  sessionsPerWeek Int      @default(2)
+  sessionMinutes  Int      @default(120)
+  sortOrder       Int      @default(0)
+  active          Boolean  @default(true)
+  createdAt       DateTime @default(now())
+
+  students      StudentProfile[]
+  subscriptions Subscription[]
+}
+
+model Subscription {
+  id        String    @id @default(cuid())
+  studentId String
+  packageId String
+  cycle     String // MONTHLY | QUARTERLY
+  months    Int
+  amount    Int
+  status    String    @default("PENDING") // PENDING | ACTIVE | EXPIRED | CANCELLED
+  startsAt  DateTime?
+  endsAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  student StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  package Package        @relation(fields: [packageId], references: [id], onDelete: Restrict)
+  invoice Invoice?
+
+  @@index([studentId, status])
+}
+
+model Invoice {
+  id             String    @id @default(cuid())
+  number         String    @unique // e.g. INV-26-000123
+  studentId      String
+  subscriptionId String    @unique
+  amount         Int // whole Naira
+  amountPaid     Int       @default(0)
+  currency       String    @default("NGN")
+  status         String    @default("UNPAID") // UNPAID | PARTIALLY_PAID | PAID | VOID
+  createdAt      DateTime  @default(now())
+  paidAt         DateTime?
+
+  student      StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  subscription Subscription   @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  payments     Payment[]
+}
+
+// A payment attempt or record. Never activates anything until VERIFIED server-side.
+model Payment {
+  id                 String    @id @default(cuid())
+  invoiceId          String
+  method             String // PAYSTACK | BANK_TRANSFER
+  reference          String    @unique
+  gatewayTransaction String?   @unique
+  amountExpected     Int // whole Naira
+  amountReceived     Int? // whole Naira, as confirmed by the gateway or bank record
+  currency           String    @default("NGN")
+  status             String    @default("PENDING") // PENDING | UNDER_REVIEW | VERIFIED | PARTIALLY_PAID | OVERPAID | FAILED | REVERSED | REFUNDED
+  payerNote          String? // what the student told us about a bank transfer
+  bankReference      String? // the matching bank statement reference, entered by finance
+  gatewayResponse    Json?
+  verifiedById       String?
+  verifiedAt         DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+}
+
+// Append-only record of important administrative and financial actions.
+model AuditLog {
+  id        String   @id @default(cuid())
+  actorId   String?
+  action    String
+  entity    String
+  entityId  String?
+  details   Json?
+  createdAt DateTime @default(now())
+
+  actor User? @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([entity, entityId])
+  @@index([createdAt])
 }

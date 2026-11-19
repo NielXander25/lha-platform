@@ -1,12 +1,14 @@
 import { connection } from "next/server";
 import { createDepartment, toggleDepartment } from "../actions";
 import { ActiveBadge, Card, ErrorBanner, Field, PageHeader, SubmitButton, firstString, inputClass } from "@/components/admin-ui";
+import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 type SearchParams = Promise<{ [key: string]: string | string[] | undefined }>;
 
 export default async function AdminDepartmentsPage({ searchParams }: { searchParams: SearchParams }) {
   await connection();
+  await requireUser(["ADMIN"]);
   const params = await searchParams;
   const departments = await prisma.department.findMany({
     orderBy: { name: "asc" },

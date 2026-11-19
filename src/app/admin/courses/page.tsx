@@ -3,6 +3,7 @@ import { connection } from "next/server";
 import { createCourse, toggleCourse, updateCourseAudience } from "../actions";
 import { ActiveBadge, Card, ErrorBanner, Field, PageHeader, SubmitButton, firstString, inputClass } from "@/components/admin-ui";
 import { LEVELS, shortDepartment } from "@/lib/constants";
+import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { cn } from "@/lib/utils";
 
@@ -10,6 +11,7 @@ type SearchParams = Promise<{ [key: string]: string | string[] | undefined }>;
 
 export default async function AdminCoursesPage({ searchParams }: { searchParams: SearchParams }) {
   await connection();
+  await requireUser(["ADMIN"]);
   const params = await searchParams;
   const [courses, departments] = await Promise.all([
     prisma.course.findMany({

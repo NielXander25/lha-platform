@@ -1,12 +1,14 @@
 import { connection } from "next/server";
 import { createLocation, toggleLocation } from "../actions";
 import { ActiveBadge, Card, ErrorBanner, Field, PageHeader, SubmitButton, firstString, inputClass } from "@/components/admin-ui";
+import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 type SearchParams = Promise<{ [key: string]: string | string[] | undefined }>;
 
 export default async function AdminLocationsPage({ searchParams }: { searchParams: SearchParams }) {
   await connection();
+  await requireUser(["ADMIN"]);
   const params = await searchParams;
   const locations = await prisma.location.findMany({
     orderBy: [{ kind: "desc" }, { name: "asc" }],

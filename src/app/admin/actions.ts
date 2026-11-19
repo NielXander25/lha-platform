@@ -3,10 +3,16 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { requireAdmin } from "@/lib/admin-auth";
+import { audit } from "@/lib/audit";
+import { assertRole, hashPassword, ROLES } from "@/lib/auth";
+import { settlePayment } from "@/lib/billing";
 import { LEVELS } from "@/lib/constants";
 import { prisma } from "@/lib/prisma";
 import { slugify } from "@/lib/utils";
+
+// Every action re-checks the role: Server Actions can be called directly, not just from our pages.
+const requireAdmin = () => assertRole(["ADMIN"]);
+const requireFinance = () => assertRole(["ADMIN", "FINANCE"]);
 
 function fail(path: string, message: string): never {
   redirect(`${path}?error=${encodeURIComponent(message)}`);
@@ -29,7 +35,7 @@ const AssignmentSchema = z.object({
 
 async function revalidateCourse(courseId: string) {
   const course = await prisma.course.findUnique({ where: { id: courseId }, select: { slug: true } });
-  revalidatePath("/admin");
+  revalidatePath("/admin/assignments");
   revalidatePath("/tutorials");
   if (course) revalidatePath(`/tutorials/${course.slug}`);
 }
@@ -37,13 +43,13 @@ async function revalidateCourse(courseId: string) {
 export async function createAssignment(formData: FormData) {
   await requireAdmin();
   const parsed = AssignmentSchema.safeParse(form(formData));
-  if (!parsed.success) fail("/admin", parsed.error.issues[0]?.message ?? "Invalid assignment.");
+  if (!parsed.success) fail("/admin/assignments", parsed.error.issues[0]?.message ?? "Invalid assignment.");
   const { courseId, tutorId, locationId, schedule } = parsed.data;
 
   const existing = await prisma.assignment.findUnique({
     where: { courseId_tutorId_locationId: { courseId, tutorId, locationId } },
   });
-  if (existing) fail("/admin", "That tutor is already assigned to this tutorial at that location.");
+  if (existing) fail("/admin/assignments", "That tutor is already assigned to this tutorial at that location.");
 
   await prisma.assignment.create({
     data: { courseId, tutorId, locationId, schedule: schedule || null },
@@ -134,20 +140,26 @@ export async function toggleCourse(formData: FormData) {
 
 /* ---------- Pricing tiers ---------- */
 
-const TierSchema = z.object({
+const PackageSchema = z.object({
   id: z.string().min(1),
   name: z.string().trim().min(2),
   ratio: z.string().trim().min(2),
   description: z.string().trim().min(2),
-  price: z.coerce.number().int().nonnegative(),
+  monthlyPrice: z.coerce.number().int().nonnegative(),
+  quarterlyPrice: z.coerce.number().int().nonnegative(),
+  capacity: z.coerce.number().int().min(1).max(100),
+  sessionsPerWeek: z.coerce.number().int().min(1).max(14),
+  sessionMinutes: z.coerce.number().int().min(15).max(480),
 });
 
-export async function updateTier(formData: FormData) {
-  await requireAdmin();
-  const parsed = TierSchema.safeParse(form(formData));
-  if (!parsed.success) fail("/admin/pricing", "Fill in every field; the price must be a whole number.");
+export async function updatePackage(formData: FormData) {
+  const user = await requireAdmin();
+  const parsed = PackageSchema.safeParse(form(formData));
+  if (!parsed.success) fail("/admin/pricing", "Fill in every field; prices and numbers must be whole numbers.");
   const { id, ...data } = parsed.data;
-  await prisma.pricingTier.update({ where: { id }, data });
+  const before = await prisma.package.findUniqueOrThrow({ where: { id } });
+  await prisma.package.update({ where: { id }, data });
+  await audit({ actorId: user.id, action: "package.updated", entity: "Package", entityId: id, details: { before: { monthlyPrice: before.monthlyPrice, quarterlyPrice: before.quarterlyPrice, capacity: before.capacity }, after: data } });
   revalidatePath("/", "layout");
 }
 
@@ -192,7 +204,8 @@ export async function createTutor(formData: FormData) {
     fail("/admin/tutors", "A tutor with that email already exists.");
   }
   await prisma.tutor.create({
-    data: { ...parsed.data, phone: parsed.data.phone || null, bio: parsed.data.bio || null },
+    // Staff-added tutors are vetted by the person adding them.
+    data: { ...parsed.data, phone: parsed.data.phone || null, bio: parsed.data.bio || null, status: "APPROVED", approvedAt: new Date() },
   });
   revalidatePath("/admin/tutors");
 }
@@ -231,4 +244,122 @@ export async function toggleLocation(formData: FormData) {
   await prisma.location.update({ where: { id }, data: { active: !location.active } });
   revalidatePath("/admin", "layout");
   revalidatePath("/tutorials", "layout");
+}
+
+/* ---------- Tutor applications ---------- */
+
+export async function reviewTutor(formData: FormData) {
+  const user = await requireAdmin();
+  const id = String(formData.get("id") ?? "");
+  const decision = String(formData.get("decision") ?? "");
+  const note = String(formData.get("note") ?? "").trim().slice(0, 500) || null;
+  if (!["APPROVED", "REJECTED", "SUSPENDED"].includes(decision)) fail("/admin/tutors", "Unknown decision.");
+  await prisma.tutor.update({
+    where: { id },
+    data: { status: decision, reviewNote: note, approvedAt: decision === "APPROVED" ? new Date() : null, active: decision === "APPROVED" },
+  });
+  await audit({ actorId: user.id, action: `tutor.${decision.toLowerCase()}`, entity: "Tutor", entityId: id, details: { note } });
+  revalidatePath("/admin", "layout");
+  redirect(`/admin/tutors/${id}?ok=${encodeURIComponent(`Tutor ${decision.toLowerCase()}.`)}`);
+}
+
+export async function setCourseCompetency(formData: FormData) {
+  const user = await requireAdmin();
+  const tutorId = String(formData.get("tutorId") ?? "");
+  const courseId = String(formData.get("courseId") ?? "");
+  const approved = formData.get("approved") === "true";
+  await prisma.tutorCourse.update({ where: { tutorId_courseId: { tutorId, courseId } }, data: { approved } });
+  await audit({ actorId: user.id, action: approved ? "tutor.course_approved" : "tutor.course_unapproved", entity: "Tutor", entityId: tutorId, details: { courseId } });
+  revalidatePath(`/admin/tutors/${tutorId}`);
+}
+
+/* ---------- Students ---------- */
+
+export async function setStudentSuspended(formData: FormData) {
+  const user = await requireAdmin();
+  const id = String(formData.get("id") ?? "");
+  const suspend = formData.get("suspend") === "true";
+  const student = await prisma.studentProfile.findUniqueOrThrow({ where: { id } });
+  // Lifting a suspension returns an active subscriber to the allocation queue; others go back through onboarding.
+  const hasActive = await prisma.subscription.count({ where: { studentId: id, status: "ACTIVE", endsAt: { gt: new Date() } } });
+  const status = suspend ? "SUSPENDED" : hasActive ? "AWAITING_ALLOCATION" : "PROFILE_INCOMPLETE";
+  await prisma.studentProfile.update({ where: { id }, data: { status } });
+  if (!suspend && !hasActive) {
+    const { refreshStudentStatus } = await import("@/lib/students");
+    await refreshStudentStatus(id);
+  }
+  await audit({ actorId: user.id, action: suspend ? "student.suspended" : "student.unsuspended", entity: "StudentProfile", entityId: id, details: { from: student.status } });
+  revalidatePath(`/admin/students/${id}`);
+}
+
+/* ---------- Finance: bank transfer reconciliation ---------- */
+
+const ReconcileSchema = z.object({
+  paymentId: z.string().min(1),
+  amountReceived: z.coerce.number().int().positive("Enter the amount that actually arrived in the bank."),
+  bankReference: z.string().trim().min(4, "Enter the bank statement reference for this credit."),
+});
+
+export async function verifyTransfer(formData: FormData) {
+  const user = await requireFinance();
+  const parsed = ReconcileSchema.safeParse(form(formData));
+  if (!parsed.success) fail("/admin/payments", parsed.error.issues[0].message);
+  const { paymentId, amountReceived, bankReference } = parsed.data;
+
+  // The same bank credit can't be used to verify two payments.
+  const reused = await prisma.payment.findFirst({ where: { bankReference, id: { not: paymentId } } });
+  if (reused) fail("/admin/payments", `Bank reference ${bankReference} was already used for payment ${reused.reference}.`);
+
+  const payment = await prisma.payment.findUniqueOrThrow({ where: { id: paymentId } });
+  if (payment.method !== "BANK_TRANSFER") fail("/admin/payments", "Only bank transfers are verified here.");
+
+  const { changed } = await settlePayment({ paymentId, outcome: "SUCCESS", amountReceived, bankReference, actorId: user.id });
+  if (!changed) fail("/admin/payments", "That payment was already processed.");
+  revalidatePath("/admin", "layout");
+  redirect("/admin/payments?ok=" + encodeURIComponent(`Transfer ${payment.reference} verified.`));
+}
+
+export async function rejectTransfer(formData: FormData) {
+  const user = await requireFinance();
+  const paymentId = String(formData.get("paymentId") ?? "");
+  const { changed } = await settlePayment({ paymentId, outcome: "FAILED", actorId: user.id });
+  if (!changed) fail("/admin/payments", "That payment was already processed.");
+  revalidatePath("/admin", "layout");
+  redirect("/admin/payments?ok=" + encodeURIComponent("Transfer marked as not received."));
+}
+
+/* ---------- Staff accounts ---------- */
+
+const StaffSchema = z.object({
+  name: z.string().trim().min(3),
+  email: z.email().trim().toLowerCase(),
+  role: z.enum(["ADMIN", "FINANCE", "SUPPORT"]),
+  password: z.string().min(10, "Use a temporary password of at least 10 characters."),
+});
+
+export async function createStaff(formData: FormData) {
+  const user = await requireAdmin();
+  const parsed = StaffSchema.safeParse(form(formData));
+  if (!parsed.success) fail("/admin/staff", parsed.error.issues[0].message);
+  if (await prisma.user.findUnique({ where: { email: parsed.data.email } })) fail("/admin/staff", "A user with that email already exists.");
+  const created = await prisma.user.create({
+    data: { name: parsed.data.name, email: parsed.data.email, role: parsed.data.role, passwordHash: await hashPassword(parsed.data.password) },
+  });
+  await audit({ actorId: user.id, action: "staff.created", entity: "User", entityId: created.id, details: { role: created.role } });
+  redirect("/admin/staff?ok=" + encodeURIComponent(`${created.name} can now log in as ${created.role.toLowerCase()}.`));
+}
+
+export async function setUserActive(formData: FormData) {
+  const user = await requireAdmin();
+  const id = String(formData.get("id") ?? "");
+  const active = formData.get("active") === "true";
+  if (id === user.id) fail("/admin/staff", "You can't deactivate your own account.");
+  const target = await prisma.user.findUniqueOrThrow({ where: { id } });
+  if (!ROLES.includes(target.role as (typeof ROLES)[number])) fail("/admin/staff", "Unknown user.");
+  await prisma.$transaction([
+    prisma.user.update({ where: { id }, data: { active } }),
+    ...(active ? [] : [prisma.session.deleteMany({ where: { userId: id } })]),
+  ]);
+  await audit({ actorId: user.id, action: active ? "user.activated" : "user.deactivated", entity: "User", entityId: id });
+  revalidatePath("/admin/staff");
 }

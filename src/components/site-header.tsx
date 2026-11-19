@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Menu } from "lucide-react";
+import { getCurrentUser, homeFor } from "@/lib/auth";
 import { Logo } from "./logo";
 
 const links = [
@@ -10,7 +11,9 @@ const links = [
   { href: "/#contact", label: "Contact" },
 ];
 
-export function SiteHeader() {
+export async function SiteHeader() {
+  const user = await getCurrentUser();
+  const cta = user ? { href: homeFor(user.role), label: "My dashboard" } : { href: "/register", label: "Register" };
   return (
     <header className="sticky top-0 z-30 border-b border-slate-200/70 bg-[#f7f8fd]/90 backdrop-blur">
       <div className="mx-auto flex min-h-16 max-w-6xl items-center justify-between gap-3 px-4 py-2 sm:px-6">
@@ -22,12 +25,19 @@ export function SiteHeader() {
             </Link>
           ))}
         </nav>
-        <Link
-          href="/tutorials"
-          className="hidden whitespace-nowrap rounded-full bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700 md:block"
-        >
-          Find a tutorial
-        </Link>
+        <div className="hidden items-center gap-4 md:flex">
+          {!user && (
+            <Link href="/login" className="text-sm font-semibold text-brand-800 hover:text-brand-600">
+              Log in
+            </Link>
+          )}
+          <Link
+            href={cta.href}
+            className="whitespace-nowrap rounded-full bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700"
+          >
+            {cta.label}
+          </Link>
+        </div>
 
         {/* Phone menu: a native <details> so it works without JavaScript. */}
         <details className="group md:hidden">
@@ -43,11 +53,13 @@ export function SiteHeader() {
                 {l.label}
               </Link>
             ))}
-            <Link
-              href="/tutorials"
-              className="mt-2 block rounded-full bg-brand-600 px-4 py-3 text-center font-semibold text-white"
-            >
-              Find a tutorial
+            {!user && (
+              <Link href="/login" className="block rounded-lg px-3 py-2.5 font-medium text-slate-700 hover:bg-brand-50">
+                Log in
+              </Link>
+            )}
+            <Link href={cta.href} className="mt-2 block rounded-full bg-brand-600 px-4 py-3 text-center font-semibold text-white">
+              {cta.label}
             </Link>
           </nav>
         </details>

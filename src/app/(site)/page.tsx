@@ -49,23 +49,23 @@ const values = [
 const steps = [
   {
     icon: Search,
-    title: "Find your course",
-    body: "Pick your department and level to find the course you need help with, with prices up front.",
+    title: "Register",
+    body: "Create your account, tell us your department and level, and pick the courses you need help with.",
   },
   {
     icon: GraduationCap,
-    title: "Meet the tutor",
-    body: "Each course page shows who teaches it, where the tutorials hold and when.",
+    title: "Share your timetable",
+    body: "Upload your university timetable and mark when you're free, so tutorials never clash with lectures.",
   },
   {
     icon: CalendarCheck,
-    title: "Pick a class size and pay",
-    body: "Choose general class, two-to-one or one-on-one, then pay online for your course.",
+    title: "Choose a package and pay",
+    body: "General group, semi-private or private, monthly or three months upfront. Pay online or by transfer.",
   },
   {
     icon: BookOpen,
     title: "Start learning",
-    body: "Attend your tutorials and walk into your exams prepared.",
+    body: "We match you with a qualified tutor at a time that suits you both. Then the learning starts.",
   },
 ];
 
@@ -73,9 +73,9 @@ export default async function HomePage() {
   await connection();
   const [departments, tiers] = await Promise.all([
     prisma.department.findMany({ where: { active: true }, select: { name: true }, orderBy: { name: "asc" } }),
-    prisma.pricingTier.findMany({ orderBy: [{ sortOrder: "asc" }, { price: "asc" }] }),
+    prisma.package.findMany({ where: { active: true }, orderBy: { sortOrder: "asc" } }),
   ]);
-  const fromPrice = tiers.length ? Math.min(...tiers.map((t) => t.price)) : null;
+  const fromPrice = tiers.length ? Math.min(...tiers.map((t) => t.monthlyPrice)) : null;
   const stats = [
     baseStats[0],
     { value: String(departments.length), label: "Engineering departments covered" },
@@ -269,10 +269,10 @@ export default async function HomePage() {
             Three ways to learn. You choose.
           </h2>
           <p className="mb-10 mt-4 max-w-2xl text-slate-600">
-            The same prices apply to every course, {PRICE_UNIT}. Pick the class size that suits you,
-            choose your course and pay online.
+            The same prices apply to every course, {PRICE_UNIT}, or pay for three months upfront.
+            Pick the class size that suits you.
           </p>
-          <PricingCards tiers={tiers} href={() => "/tutorials"} cta="Choose a course" />
+          <PricingCards tiers={tiers} href={(t) => `/register/student?package=${t.code}`} cta="Register" />
         </section>
       )}
 

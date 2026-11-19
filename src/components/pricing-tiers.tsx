@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { PricingTier } from "@prisma/client";
+import type { Package as PricingTier } from "@prisma/client";
 import { ArrowRight, User, UserPlus, Users } from "lucide-react";
 import { PRICE_UNIT } from "@/lib/constants";
 import { cn, formatPrice } from "@/lib/utils";
@@ -40,7 +40,7 @@ export function PricingCards({
               {tier.description}
             </p>
             <p className="mt-6">
-              <span className="font-display text-3xl font-semibold sm:text-4xl">{formatPrice(tier.price)}</span>
+              <span className="font-display text-3xl font-semibold sm:text-4xl">{formatPrice(tier.monthlyPrice)}</span>
               <span className={cn("text-sm", featured ? "text-brand-100/70" : "text-slate-500")}> {PRICE_UNIT}</span>
             </p>
             <span
@@ -58,7 +58,7 @@ export function PricingCards({
   );
 }
 
-// Compact clickable cards (course page sidebar). Each leads to checkout for that tier.
+// Compact clickable cards (course page sidebar). Each leads to registration with that package chosen.
 export function PricingOptions({ tiers, href }: { tiers: PricingTier[]; href: (tier: PricingTier) => string }) {
   return (
     <ul className="space-y-3">
@@ -76,9 +76,9 @@ export function PricingOptions({ tiers, href }: { tiers: PricingTier[]; href: (t
                 <span className="block text-sm text-slate-500">{tier.ratio}</span>
               </span>
               <span className="shrink-0 text-right">
-                <span className="block whitespace-nowrap font-display text-xl font-semibold text-slate-900 sm:text-2xl">{formatPrice(tier.price)}</span>
+                <span className="block whitespace-nowrap font-display text-xl font-semibold text-slate-900 sm:text-2xl">{formatPrice(tier.monthlyPrice)}</span>
                 <span className="flex items-center justify-end gap-1 text-xs font-semibold text-brand-700">
-                  Pay <ArrowRight className="size-3.5 transition group-hover:translate-x-0.5" />
+                  Choose <ArrowRight className="size-3.5 transition group-hover:translate-x-0.5" />
                 </span>
               </span>
             </Link>
