@@ -27,12 +27,45 @@ export function timetableAiProvider(): Provider | null {
 export const timetableAiConfigured = () => timetableAiProvider() !== null;
 
 const CLAUDE_MODEL = "claude-opus-5-5";
-// Tried in order: when Google's free tier is busy (503/504/429) or a model isn't available,
-// the next one is tried. Override with GEMINI_MODEL as a comma-separated list.
-const GEMINI_MODELS = (process.env.GEMINI_MODEL || "gemini-3.8-flash,gemini-3.8-flash-lite,gemini-2.5-flash,gemini-2.5-flash-lite")
-  .split(",")
-  .map((m) => m.trim())
-  .filter(Boolean);
+// Gemini models change often and differ by account, so we ask Google which ones this key can use
+// (cached for an hour) instead of hard-coding names. GEMINI_MODEL (comma-separated) overrides it.
+const GEMINI_FALLBACK = ["gemini-3.8-flash", "gemini-3.5-flash-lite", "gemini-3.5-flash"];
+let geminiModelCache: { at: number; models: string[] } | null = null;
+
+const version = (name: string) => Number(/gemini-(\d+(?:\.\d+)?)/.exec(name)?.[1] ?? 0);
+
+async function geminiModels(ai: GoogleGenAI): Promise<string[]> {
+  const override = process.env.GEMINI_MODEL?.split(",").map((m) => m.trim()).filter(Boolean);
+  if (override?.length) return override;
+  if (geminiModelCache && Date.now() - geminiModelCache.at < 60 * 60 * 1000) return geminiModelCache.models;
+  try {
+    const found: string[] = [];
+    for await (const m of await ai.models.list()) {
+      const name = (m.name ?? "").replace(/^models\//, "");
+      if (!m.supportedActions?.includes("generateContent")) continue;
+      // Fast, general-purpose models that read images and PDFs; skip specialised variants.
+      if (!/^gemini-.*flash/.test(name) || /(image|tts|audio|live|embed|native|thinking)/.test(name)) continue;
+      found.push(name);
+    }
+    const stable = (n: string) => !/(preview|exp)/.test(n);
+    const sorted = [...new Set(found)].sort((a, b) => Number(stable(b)) - Number(stable(a)) || version(b) - version(a) || a.length - b.length);
+    // Alternate full and "lite" models: when the main model is overloaded, a lite one is often free.
+    const full = sorted.filter((n) => !n.includes("lite"));
+    const lite = sorted.filter((n) => n.includes("lite"));
+    const order: string[] = [];
+    for (let i = 0; order.length < sorted.length; i++) {
+      if (full[i]) order.push(full[i]);
+      if (lite[i]) order.push(lite[i]);
+    }
+    const models = order.length ? order.slice(0, 4) : GEMINI_FALLBACK;
+    geminiModelCache = { at: Date.now(), models };
+    console.log("Gemini models available for timetable reading", models);
+    return models;
+  } catch (error) {
+    console.warn("Couldn't list Gemini models; using defaults", String(error).slice(0, 200));
+    return GEMINI_FALLBACK;
+  }
+}
 
 // Reading gives up after this long so students are never left waiting; it must stay well under
 // the page's maxDuration (120 s) so the failure can be saved before the server stops the task.
@@ -169,11 +202,11 @@ async function readTimetable(bytes: Uint8Array, mimeType: string): Promise<{ res
     delete schema.$schema;
     const deadline = Date.now() + READ_TIMEOUT_MS - 2_000;
     const errors: string[] = [];
-    for (const [i, model] of GEMINI_MODELS.entries()) {
+    for (const [i, model] of (await geminiModels(ai)).entries()) {
       const left = deadline - Date.now();
       if (left < 5_000) break;
       // Give the first (best) model the most time, but always leave room for a backup.
-      const timeout = i === 0 ? Math.min(20_000, left) : Math.min(15_000, left);
+      const timeout = i === 0 ? Math.min(15_000, left) : Math.min(12_000, left);
       try {
         const response = await ai.models.generateContent({
           model,

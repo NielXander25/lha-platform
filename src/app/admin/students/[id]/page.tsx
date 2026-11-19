@@ -6,6 +6,8 @@ import { FlashMessage, Panel, StatusBadge } from "@/components/portal-ui";
 import { PackageMark, StageMark } from "@/components/student-marks";
 import { requireUser } from "@/lib/auth";
 import { PAYMENT_STATUS_LABELS } from "@/lib/billing";
+import { ALLOCATION_TONE, describeSessions } from "@/lib/classes";
+import { ALLOCATION_STATUS_LABELS } from "@/lib/matching/run";
 import { prisma } from "@/lib/prisma";
 import { DAYS_SHORT, formatTime } from "@/lib/schedule";
 import { STUDENT_STATUS_LABELS } from "@/lib/students";
@@ -28,6 +30,7 @@ export default async function StudentDetail({ params, searchParams }: { params: 
       timetableUploads: { select: { id: true, fileName: true, createdAt: true } },
       invoices: { include: { payments: true, subscription: { include: { package: true } } }, orderBy: { createdAt: "desc" } },
       subscriptions: { where: { status: "ACTIVE" }, include: { package: true }, orderBy: { endsAt: "desc" } },
+      allocations: { include: { course: true, class: { include: { tutor: true, sessions: true } } } },
     },
   });
   if (!s) notFound();
@@ -132,6 +135,42 @@ export default async function StudentDetail({ params, searchParams }: { params: 
           </ul>
         </Panel>
       </div>
+
+      <Panel>
+        <h2 className="font-semibold text-slate-900">Tutors</h2>
+        {s.courses.length === 0 ? (
+          <p className="mt-2 text-sm text-slate-500">No courses chosen yet.</p>
+        ) : s.subscriptions.length === 0 ? (
+          <p className="mt-2 text-sm text-slate-500">
+            Tutors are matched once the student has an active subscription (paid, or free access above).
+          </p>
+        ) : (
+          <ul className="mt-3 divide-y divide-slate-100 text-sm">
+            {s.courses.map(({ course }) => {
+              const a = s.allocations.find((x) => x.courseId === course.id);
+              const waiting = !a || ["AWAITING_ALLOCATION", "CONFLICT_DETECTED"].includes(a.status);
+              return (
+                <li key={course.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
+                  <span className="min-w-0">
+                    <span className="block font-medium text-slate-900">{course.code ?? course.title}</span>
+                    <span className="block text-slate-500">
+                      {a?.class ? `${a.class.tutor.name} · ${describeSessions(a.class.sessions)}` : a?.reason ?? "Not matched yet"}
+                    </span>
+                  </span>
+                  <span className="flex items-center gap-3">
+                    <StatusBadge label={a ? ALLOCATION_STATUS_LABELS[a.status] ?? a.status : "Not run yet"} tone={a ? ALLOCATION_TONE[a.status] : "neutral"} />
+                    {a && viewer.role !== "FINANCE" && (
+                      <Link href={`/admin/matching/${a.id}`} className="rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-700">
+                        {waiting ? "Assign tutor" : "View"}
+                      </Link>
+                    )}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </Panel>
 
       <Panel>
         <h2 className="font-semibold text-slate-900">Invoices & payments</h2>
