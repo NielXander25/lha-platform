@@ -151,7 +151,7 @@ export default async function AllocationDetail({ params, searchParams }: { param
             </form>
           ) : (
             <p className="mt-3 text-sm text-amber-700">
-              There are no approved tutors yet. Ask tutors to apply at /register/tutor, then approve them under Tutors &amp; approvals.
+              There are no approved tutors yet. Add tutors under Tutors &amp; approvals; each gets a login to set their courses and available times.
             </p>
           )}
           {tutors.length > 0 && tutors.every((t) => !t.hasTimes) && (

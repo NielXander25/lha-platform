@@ -8,6 +8,7 @@ import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { TUTOR_STATUS } from "@/lib/tutors";
 import { DAYS_SHORT, formatTime, totalHours } from "@/lib/schedule";
+import { TutorLoginPanel } from "@/components/tutor-login-forms";
 
 type SearchParams = Promise<{ [key: string]: string | string[] | undefined }>;
 const MODE = { IN_PERSON: "In person", ONLINE: "Online", BOTH: "In person or online" } as Record<string, string>;
@@ -22,6 +23,7 @@ export default async function TutorReview({ params, searchParams }: { params: Pr
       department: true,
       courses: { include: { course: true }, orderBy: { course: { code: "asc" } } },
       credentials: { select: { id: true, fileName: true, size: true } },
+      user: { select: { lastLoginAt: true } },
     },
   });
   if (!tutor) notFound();
@@ -112,6 +114,15 @@ export default async function TutorReview({ params, searchParams }: { params: Pr
             ) : (
               <p className="mt-2 text-sm text-slate-500">Not set.</p>
             )}
+          </Panel>
+
+          <Panel>
+            <h2 className="font-semibold text-slate-900">Login</h2>
+            <TutorLoginPanel
+              tutorId={tutor.id}
+              hasLogin={Boolean(tutor.userId)}
+              lastLogin={tutor.user?.lastLoginAt ? tutor.user.lastLoginAt.toLocaleString("en-NG", { timeZone: "Africa/Lagos", dateStyle: "medium", timeStyle: "short" }) : null}
+            />
           </Panel>
 
           <Panel>

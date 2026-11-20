@@ -128,32 +128,6 @@ export async function registerStudent(_: FormState, fd: FormData): Promise<FormS
   redirect("/portal/profile");
 }
 
-export async function registerTutor(_: FormState, fd: FormData): Promise<FormState> {
-  const account = await createAccount(fd);
-  if ("error" in account) return { error: account.error, fields: fieldsOf(fd) };
-
-  // An admin may already have added this person as a tutor; link the account instead of duplicating.
-  const existing = await prisma.tutor.findUnique({ where: { email: account.data.email } });
-  if (existing?.userId) return { error: "An account with that email already exists. Log in instead.", fields: fieldsOf(fd) };
-
-  const user = await prisma.user.create({
-    data: {
-      ...account.data,
-      role: "TUTOR",
-      tutor: existing
-        ? { connect: { id: existing.id } }
-        : { create: { name: account.data.name, email: account.data.email, phone: account.data.phone, subjects: "" } },
-    },
-  });
-  await audit({ actorId: user.id, action: "tutor.registered", entity: "User", entityId: user.id });
-  await startSession(user.id);
-  if (needsEmailVerification(user)) {
-    await sendVerificationCode(user);
-    redirect("/verify-email");
-  }
-  redirect("/tutor/profile");
-}
-
 /* ---------- Email verification ---------- */
 
 export async function verifyEmail(_: FormState, fd: FormData): Promise<FormState> {
@@ -172,4 +146,26 @@ export async function resendVerificationCode(): Promise<void> {
   if (!needsEmailVerification(user)) redirect(homeFor(user.role));
   const result = await sendVerificationCode(user);
   redirect(`/verify-email?${result.ok ? "sent=1" : `error=${encodeURIComponent(result.message)}`}`);
+}
+
+/* ---------- Password ---------- */
+
+const NewPasswordSchema = z
+  .object({
+    current: z.string().min(1, "Enter your current password."),
+    password: z.string().min(8, "Use at least 8 characters for your new password."),
+    confirm: z.string(),
+  })
+  .refine((d) => d.password === d.confirm, { message: "The two new passwords don't match.", path: ["confirm"] })
+  .refine((d) => d.password !== d.current, { message: "Choose a password different from the current one.", path: ["password"] });
+
+export async function changePassword(_: FormState, fd: FormData): Promise<FormState> {
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
+  const parsed = NewPasswordSchema.safeParse(Object.fromEntries(fd));
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+  if (!(await verifyPassword(parsed.data.current, user.passwordHash))) return { error: "Your current password isn't right." };
+  await prisma.user.update({ where: { id: user.id }, data: { passwordHash: await hashPassword(parsed.data.password), mustChangePassword: false } });
+  await audit({ actorId: user.id, action: "auth.password_changed", entity: "User", entityId: user.id });
+  redirect(`${homeFor(user.role)}?ok=${encodeURIComponent("Password saved. Use it next time you log in.")}`);
 }

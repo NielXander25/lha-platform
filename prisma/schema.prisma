@@ -145,6 +145,8 @@ model User {
   lastLoginAt  DateTime?
   // Set once the person types the code we emailed them. Staff and older accounts count as verified.
   emailVerifiedAt DateTime?
+  // Set when an admin issues a temporary password; the person must choose their own at next login.
+  mustChangePassword Boolean @default(false)
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 

@@ -2,17 +2,11 @@
 
 import Link from "next/link";
 import { useActionState } from "react";
-import { registerStudent, registerTutor, type FormState } from "@/app/actions/auth";
+import { registerStudent, type FormState } from "@/app/actions/auth";
 import { FormError, Submit, TextField } from "@/components/forms";
 
-export function AccountForm({
-  role,
-  hidden = {},
-}: {
-  role: "STUDENT" | "TUTOR";
-  hidden?: Record<string, string>;
-}) {
-  const [state, action] = useActionState<FormState, FormData>(role === "STUDENT" ? registerStudent : registerTutor, {});
+export function AccountForm({ hidden = {} }: { hidden?: Record<string, string> }) {
+  const [state, action] = useActionState<FormState, FormData>(registerStudent, {});
   const f = state.fields ?? {};
   return (
     <form action={action} className="space-y-4">
@@ -27,10 +21,9 @@ export function AccountForm({
       <label className="flex gap-3 text-sm text-slate-600">
         <input type="checkbox" name="consent" required defaultChecked={f.consent === "on"} className="mt-0.5 size-4 shrink-0 accent-brand-600" />
         <span>
-          I agree that Learning Hub Africa may store and use the information I provide
-          {role === "STUDENT" ? ", including my academic details and timetable," : ", including my qualifications and availability,"} to
-          organise tutorials, in line with the Nigeria Data Protection Act.
-          {role === "STUDENT" && " I understand my uploaded timetable is read by an automated AI service to fill in my lectures, which I then check."}
+          I agree that Learning Hub Africa may store and use the information I provide, including my academic details and timetable, to
+          organise tutorials, in line with the Nigeria Data Protection Act. I understand my uploaded timetable is read by an automated AI
+          service to fill in my lectures, which I then check.
         </span>
       </label>
       <Submit className="w-full">Create account</Submit>

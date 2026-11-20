@@ -41,7 +41,7 @@ export async function tutorDecisionEmail(tutorId: string, decision: string, note
   if (decision === "SUSPENDED") {
     return sendMail({
       to,
-      subject: "Your Learning Hub Africa tutor account",
+      subject: "Your Learning Hub Africa tutor account is on hold",
       heading: "Your tutor account is on hold",
       paragraphs: [
         `Hi ${first},`,

@@ -189,25 +189,47 @@ export async function toggleDepartment(formData: FormData) {
 /* ---------- Tutors ---------- */
 
 const TutorSchema = z.object({
-  name: z.string().trim().min(2),
-  email: z.email().trim().toLowerCase(),
-  phone: z.string().trim().optional(),
-  subjects: z.string().trim().min(2),
-  bio: z.string().trim().optional(),
+  name: z.string().trim().min(3, "Enter the tutor's full name."),
+  email: z.email("Enter a valid email address.").trim().toLowerCase(),
+  phone: z.string().trim().regex(/^\+?[0-9 ()-]{7,20}$/, "Enter a valid phone number.").or(z.literal("")),
 });
 
-export async function createTutor(formData: FormData) {
-  await requireAdmin();
+export type TutorLoginState = {
+  error?: string;
+  issued?: { name: string; email: string; password: string; emailed: boolean; created: boolean; tutorId: string };
+};
+
+/** Tutors can't sign up on the website: an admin adds them here and they get a login. */
+export async function addTutor(_: TutorLoginState, formData: FormData): Promise<TutorLoginState> {
+  const user = await requireAdmin();
   const parsed = TutorSchema.safeParse(form(formData));
-  if (!parsed.success) fail("/admin/tutors", "Please enter a name, valid email and subjects.");
-  if (await prisma.tutor.findUnique({ where: { email: parsed.data.email } })) {
-    fail("/admin/tutors", "A tutor with that email already exists.");
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+  const { name, email, phone } = parsed.data;
+  if (await prisma.user.findUnique({ where: { email } })) return { error: "Someone already has an account with that email." };
+  let tutor = await prisma.tutor.findUnique({ where: { email } });
+  if (!tutor) {
+    tutor = await prisma.tutor.create({
+      // Tutors added by an admin are vetted by that admin.
+      data: { name, email, phone: phone || null, subjects: "", status: "APPROVED", approvedAt: new Date() },
+    });
+    await audit({ actorId: user.id, action: "tutor.added", entity: "Tutor", entityId: tutor.id });
   }
-  await prisma.tutor.create({
-    // Staff-added tutors are vetted by the person adding them.
-    data: { ...parsed.data, phone: parsed.data.phone || null, bio: parsed.data.bio || null, status: "APPROVED", approvedAt: new Date() },
-  });
-  revalidatePath("/admin/tutors");
+  const { issueTutorLogin } = await import("@/lib/tutor-accounts");
+  const result = await issueTutorLogin(tutor.id, user.id);
+  revalidatePath("/admin", "layout");
+  if (!result.ok) return { error: result.message };
+  return { issued: { ...result, tutorId: tutor.id } };
+}
+
+/** Creates a login for an existing tutor profile, or resets a forgotten password. */
+export async function issueTutorPassword(_: TutorLoginState, formData: FormData): Promise<TutorLoginState> {
+  const user = await requireAdmin();
+  const tutorId = String(formData.get("tutorId") ?? "");
+  const { issueTutorLogin } = await import("@/lib/tutor-accounts");
+  const result = await issueTutorLogin(tutorId, user.id);
+  revalidatePath(`/admin/tutors/${tutorId}`);
+  if (!result.ok) return { error: result.message };
+  return { issued: { ...result, tutorId } };
 }
 
 export async function toggleTutor(formData: FormData) {
