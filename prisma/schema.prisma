@@ -143,6 +143,8 @@ model User {
   role         String
   active       Boolean   @default(true)
   lastLoginAt  DateTime?
+  // Set once the person types the code we emailed them. Staff and older accounts count as verified.
+  emailVerifiedAt DateTime?
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
@@ -151,6 +153,22 @@ model User {
   tutor        Tutor?
   availability Availability[]
   auditLogs    AuditLog[]
+  emailCodes   EmailCode[]
+}
+
+// A one-time code emailed to confirm an address. Only a hash of the code is stored.
+model EmailCode {
+  id        String    @id @default(cuid())
+  userId    String
+  codeHash  String
+  expiresAt DateTime
+  attempts  Int       @default(0)
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
 }
 
 // A signed-in browser. The cookie holds a random token; only its SHA-256 hash is stored.

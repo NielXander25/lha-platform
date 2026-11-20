@@ -7,6 +7,7 @@ import { redirect } from "next/navigation";
 import type { User } from "@prisma/client";
 import { SESSION_COOKIE } from "@/lib/auth-cookie";
 import { prisma } from "@/lib/prisma";
+import { needsEmailVerification } from "@/lib/verification";
 
 const scrypt = promisify(scryptCb) as (password: string, salt: Buffer, keylen: number) => Promise<Buffer>;
 
@@ -71,6 +72,7 @@ export const getCurrentUser = cache(async (): Promise<User | null> => {
 export async function requireUser(roles?: readonly Role[]) {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
+  if (needsEmailVerification(user)) redirect("/verify-email");
   if (roles && !roles.includes(user.role as Role)) redirect(homeFor(user.role));
   return user;
 }
@@ -78,7 +80,7 @@ export async function requireUser(roles?: readonly Role[]) {
 /** Use in Server Actions and route handlers: throws instead of redirecting. */
 export async function assertRole(roles: readonly Role[]) {
   const user = await getCurrentUser();
-  if (!user || !roles.includes(user.role as Role)) throw new Error("Unauthorized");
+  if (!user || !roles.includes(user.role as Role) || needsEmailVerification(user)) throw new Error("Unauthorized");
   return user;
 }
 

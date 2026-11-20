@@ -3,8 +3,9 @@
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { audit } from "@/lib/audit";
-import { endSession, hashPassword, homeFor, startSession, verifyPassword } from "@/lib/auth";
+import { endSession, getCurrentUser, hashPassword, homeFor, startSession, verifyPassword } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { checkVerificationCode, needsEmailVerification, sendVerificationCode } from "@/lib/verification";
 import { nextStudentCode } from "@/lib/students";
 
 export type FormState = { error?: string; fields?: Record<string, string> };
@@ -49,6 +50,12 @@ export async function login(_: FormState, fd: FormData): Promise<FormState> {
   }
 
   await startSession(user.id);
+  if (needsEmailVerification(user)) {
+    // Send a code if they don't already have a usable one.
+    const live = await prisma.emailCode.count({ where: { userId: user.id, usedAt: null, expiresAt: { gt: new Date() } } });
+    if (!live) await sendVerificationCode(user);
+    redirect("/verify-email");
+  }
   redirect(next.startsWith("/") && !next.startsWith("//") ? next : homeFor(user.role));
 }
 
@@ -114,6 +121,10 @@ export async function registerStudent(_: FormState, fd: FormData): Promise<FormS
 
   await audit({ actorId: user.id, action: "student.registered", entity: "StudentProfile", entityId: user.student?.id, details: { studentCode: user.student?.studentCode } });
   await startSession(user.id);
+  if (needsEmailVerification(user)) {
+    await sendVerificationCode(user);
+    redirect("/verify-email");
+  }
   redirect("/portal/profile");
 }
 
@@ -136,5 +147,29 @@ export async function registerTutor(_: FormState, fd: FormData): Promise<FormSta
   });
   await audit({ actorId: user.id, action: "tutor.registered", entity: "User", entityId: user.id });
   await startSession(user.id);
+  if (needsEmailVerification(user)) {
+    await sendVerificationCode(user);
+    redirect("/verify-email");
+  }
   redirect("/tutor/profile");
+}
+
+/* ---------- Email verification ---------- */
+
+export async function verifyEmail(_: FormState, fd: FormData): Promise<FormState> {
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
+  if (!needsEmailVerification(user)) redirect(homeFor(user.role));
+  const result = await checkVerificationCode(user.id, String(fd.get("code") ?? ""));
+  if (!result.ok) return { error: result.message };
+  await audit({ actorId: user.id, action: "auth.email_verified", entity: "User", entityId: user.id });
+  redirect(`${user.role === "TUTOR" ? "/tutor/profile" : "/portal/profile"}?ok=${encodeURIComponent("Email confirmed. Welcome!")}`);
+}
+
+export async function resendVerificationCode(): Promise<void> {
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
+  if (!needsEmailVerification(user)) redirect(homeFor(user.role));
+  const result = await sendVerificationCode(user);
+  redirect(`/verify-email?${result.ok ? "sent=1" : `error=${encodeURIComponent(result.message)}`}`);
 }
