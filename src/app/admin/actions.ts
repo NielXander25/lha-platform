@@ -262,9 +262,12 @@ export async function reviewTutor(formData: FormData) {
   if (decision === "APPROVED") await prisma.tutorCourse.updateMany({ where: { tutorId: id }, data: { approved: true } });
   await audit({ actorId: user.id, action: `tutor.${decision.toLowerCase()}`, entity: "Tutor", entityId: id, details: { note } });
   if (decision === "APPROVED") (await import("@/lib/matching/respond")).scheduleMatching();
+  const { tutorDecisionEmail } = await import("@/lib/tutor-emails");
+  const emailed = await tutorDecisionEmail(id, decision, note);
   revalidatePath("/admin", "layout");
-  redirect(`/admin/tutors/${id}?ok=${encodeURIComponent(`Tutor ${decision.toLowerCase()}.`)}`);
+  redirect(`/admin/tutors/${id}?ok=${encodeURIComponent(`Tutor ${decision.toLowerCase()}.${emailed ? " We've emailed them." : ""}`)}`);
 }
+
 
 export async function setCourseCompetency(formData: FormData) {
   const user = await requireAdmin();
