@@ -16,6 +16,7 @@ import {
   ScrollText,
   ShieldCheck,
   Shuffle,
+  KeyRound,
   UserCog,
   UserRound,
   Users,
@@ -39,6 +40,7 @@ const ICONS = {
   audit: ScrollText,
   staff: UserCog,
   matching: Shuffle,
+  password: KeyRound,
 } as const;
 
 export type NavItem = { href: string; label: string; icon: keyof typeof ICONS; exact?: boolean };

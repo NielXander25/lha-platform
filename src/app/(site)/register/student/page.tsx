@@ -36,7 +36,7 @@ export default async function StudentRegisterPage({ searchParams }: { searchPara
         <p className="mt-6 text-sm text-slate-500">You can stop at any point and continue later by logging in.</p>
       </div>
       <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-xl shadow-slate-900/5 sm:p-7">
-        <AccountForm role="STUDENT" hidden={hidden} />
+        <AccountForm hidden={hidden} />
       </div>
     </div>
   );

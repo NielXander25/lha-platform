@@ -17,6 +17,7 @@ export default async function PortalLayout({ children }: { children: React.React
         { href: "/portal/timetable", label: "Timetable", icon: "timetable" },
         { href: "/portal/availability", label: "Availability", icon: "availability" },
         { href: "/portal/payment", label: "Payment", icon: "payment" },
+        { href: "/account/password", label: "Change password", icon: "password" },
       ]}
     >
       {children}

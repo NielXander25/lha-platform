@@ -73,6 +73,7 @@ export async function requireUser(roles?: readonly Role[]) {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
   if (needsEmailVerification(user)) redirect("/verify-email");
+  if (user.mustChangePassword) redirect("/account/password");
   if (roles && !roles.includes(user.role as Role)) redirect(homeFor(user.role));
   return user;
 }
@@ -80,7 +81,7 @@ export async function requireUser(roles?: readonly Role[]) {
 /** Use in Server Actions and route handlers: throws instead of redirecting. */
 export async function assertRole(roles: readonly Role[]) {
   const user = await getCurrentUser();
-  if (!user || !roles.includes(user.role as Role) || needsEmailVerification(user)) throw new Error("Unauthorized");
+  if (!user || !roles.includes(user.role as Role) || needsEmailVerification(user) || user.mustChangePassword) throw new Error("Unauthorized");
   return user;
 }
 

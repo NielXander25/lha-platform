@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { createTutor } from "../actions";
-import { Card, ErrorBanner, Field, PageHeader, SubmitButton, firstString, inputClass } from "@/components/admin-ui";
+import { AddTutorForm } from "@/components/tutor-login-forms";
+import { Card, ErrorBanner, PageHeader, firstString } from "@/components/admin-ui";
 import { StatusBadge } from "@/components/portal-ui";
 import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -25,7 +25,7 @@ export default async function AdminTutorsPage({ searchParams }: { searchParams: 
 
   return (
     <div>
-      <PageHeader title="Tutors & approvals" description="Review tutor applications and approve the courses each tutor can teach." />
+      <PageHeader title="Tutors & approvals" description="Add tutors, give them logins, and approve the courses each one can teach." />
       <ErrorBanner message={firstString(params.error)} />
       <div className="mb-5 flex flex-wrap gap-2">
         {[undefined, ...Object.keys(TUTOR_STATUS)].map((s) => (
@@ -63,17 +63,10 @@ export default async function AdminTutorsPage({ searchParams }: { searchParams: 
         {tutors.length === 0 && <p className="px-5 py-8 text-center text-sm text-slate-500">No tutors here.</p>}
       </Card>
 
-      <h2 className="mb-4 mt-10 text-lg font-semibold text-slate-900">Add a tutor without an account</h2>
+      <h2 className="mb-1 mt-10 text-lg font-semibold text-slate-900">Add a tutor</h2>
+      <p className="mb-4 text-sm text-slate-500">Tutors can&apos;t sign up on the website. Add them here to give them a login.</p>
       <Card className="p-5">
-        <form action={createTutor} className="grid gap-4 sm:grid-cols-2">
-          <Field label="Full name"><input name="name" required className={inputClass} /></Field>
-          <Field label="Email"><input name="email" type="email" required className={inputClass} /></Field>
-          <Field label="Phone"><input name="phone" type="tel" className={inputClass} /></Field>
-          <Field label="Subjects (comma-separated)"><input name="subjects" required placeholder="Mathematics, Physics" className={inputClass} /></Field>
-          <div className="sm:col-span-2"><Field label="Short bio"><textarea name="bio" rows={2} className={inputClass} /></Field></div>
-          <div><SubmitButton>Add tutor</SubmitButton></div>
-        </form>
-        <p className="mt-3 text-xs text-slate-500">If this person later registers with the same email, their account is linked to this profile.</p>
+        <AddTutorForm />
       </Card>
     </div>
   );
